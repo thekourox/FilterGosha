@@ -62,8 +62,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+SETTINGS = {
+    "worker_domain": os.environ.get("WORKER_DOMAIN", "").strip(),
+    "clean_ip": os.environ.get("CLEAN_IP", "").strip(),
+}
+
 async def load_state():
-    global LINKS, AUTH, SUBS
+    global LINKS, AUTH, SUBS, SETTINGS
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         if DATA_FILE.exists():
@@ -72,6 +77,7 @@ async def load_state():
             data = json.loads(raw)
             LINKS.update(data.get("links", {}))
             SUBS.update(data.get("subs", {}))
+            SETTINGS.update(data.get("settings", {}))
             if "password_hash" in data:
                 AUTH["password_hash"] = data["password_hash"]
             legacy_default_uids = [uid for uid, l in LINKS.items() if l.get("is_default")]
@@ -79,7 +85,7 @@ async def load_state():
                 LINKS.pop(uid, None)
             if legacy_default_uids:
                 asyncio.create_task(save_state())
-            logger.info(f"State loaded: {len(LINKS)} links, {len(SUBS)} subs")
+            logger.info(f"State loaded: {len(LINKS)} links, {len(SUBS)} subs, worker_domain='{SETTINGS.get('worker_domain')}'")
     except Exception as e:
         logger.warning(f"Could not load state: {e}")
 
@@ -90,6 +96,7 @@ async def save_state():
             data = {
                 "links": dict(LINKS),
                 "subs": dict(SUBS),
+                "settings": dict(SETTINGS),
                 "password_hash": AUTH["password_hash"],
                 "saved_at": datetime.now().isoformat(),
             }
@@ -222,8 +229,17 @@ def generate_vless_link(
     fingerprint: str | None = None,
     alpn: str | None = None,
     port: int | None = None,
+    worker_domain: str | None = None,
+    clean_ip: str | None = None,
+    sni: str | None = None,
+    host_header: str | None = None,
+    fragment_packets: str | None = None,
+    fragment_length: str | None = None,
+    fragment_interval: str | None = None,
+    mux_enable: bool = False,
+    mux_concurrency: int = 8,
 ) -> str:
-    """ساخت لینک‌های VLESS متناسب با پروتکل انتخاب‌شده (gRPC, WS, XHTTP)"""
+    """ساخت لینک‌های VLESS پیشرفته متناسب با پروتکل و پارامترهای پیشرفته (ALPN, Fragment, Mux, SNI, Clean IP)"""
     port_val = port or DEFAULT_PORT
     if port_val not in ALLOWED_PORTS:
         port_val = DEFAULT_PORT
@@ -231,48 +247,95 @@ def generate_vless_link(
     service_name = secrets.token_urlsafe(6)
     proto = (protocol or DEFAULT_PROTOCOL).lower()
     
-    if proto == "vless-ws":
-        params = {
-            "encryption": "none",
-            "security": "tls",
-            "type": "ws",
-            "host": host,
-            "path": f"/ws/{uuid}",
-            "sni": host,
-        }
-    elif proto == "xhttp":
-        params = {
-            "encryption": "none",
-            "security": "tls",
-            "type": "xhttp",
-            "host": host,
-            "path": f"/xhttp-siz10/{uuid}",
-            "mode": "auto",
-            "sni": host,
-        }
+    # Global / Worker settings
+    w_domain = (worker_domain or SETTINGS.get("worker_domain") or "").strip()
+    c_ip = (clean_ip or SETTINGS.get("clean_ip") or "").strip()
+
+    # Determine Target Address (Config Clean IP -> Global Clean IP -> Worker Domain -> Host)
+    if c_ip:
+        target_addr = c_ip
+    elif w_domain:
+        target_addr = w_domain
     else:
-        # Default gRPC
-        params = {
-            "encryption": "none",
-            "security": "tls",
-            "type": "grpc",
-            "serviceName": service_name,
-            "sni": host,
-            "alpn": "h2",
-        }
-    
+        target_addr = host
+
+    # Determine SNI (Config SNI -> Worker Domain -> Host)
+    if sni and sni.strip():
+        target_sni = sni.strip()
+    elif w_domain:
+        target_sni = w_domain
+    else:
+        target_sni = host
+
+    # Determine Host Header (Config Host Header -> Worker Domain -> Host)
+    if host_header and host_header.strip():
+        target_host = host_header.strip()
+    elif w_domain:
+        target_host = w_domain
+    else:
+        target_host = host
+
+    # Determine ALPN
+    target_alpn = alpn if alpn is not None else "h2,http/1.1"
+
+    # Base parameters
+    params = {
+        "encryption": "none",
+        "security": "tls",
+        "type": "ws" if proto == "vless-ws" else (proto.replace("vless-", "") if proto != "vless-grpc" else "grpc"),
+        "host": target_host,
+        "sni": target_sni,
+    }
+
+    if proto == "vless-ws":
+        params["path"] = f"/ws/{uuid}"
+    elif proto == "xhttp":
+        params["path"] = f"/xhttp-siz10/{uuid}"
+        params["mode"] = "auto"
+    else:
+        params["serviceName"] = service_name
+
+    # Fingerprint
+    if fingerprint:
+        params["fp"] = fingerprint
+
+    # ALPN
+    if target_alpn:
+        params["alpn"] = target_alpn
+
+    # Fragment
+    if fragment_packets and fragment_packets.strip():
+        params["fragment"] = fragment_packets.strip()
+        params["fg-len"] = (fragment_length or "10-20").strip()
+        params["fg-interval"] = (fragment_interval or "10-20").strip()
+
+    # Mux
+    if mux_enable:
+        params["mux"] = "1"
+        params["mux-concurrency"] = str(mux_concurrency if mux_concurrency > 0 else 8)
+
     query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
-    return f"vless://{uuid}@{host}:{port_val}?{query}#{quote(remark)}"
+    return f"vless://{uuid}@{target_addr}:{port_val}?{query}#{quote(remark)}"
 
 def vless_link_for_link(link: dict, uid: str, host: str) -> str:
     proto = link.get("protocol", DEFAULT_PROTOCOL)
     return generate_vless_link(
-        uid, host,
+        uuid=uid,
+        host=host,
         remark=f"Kourosh-{link.get('label','')}",
         protocol=proto,
         fingerprint=link.get("fingerprint"),
         alpn=link.get("alpn"),
         port=link.get("port"),
+        worker_domain=link.get("worker_domain"),
+        clean_ip=link.get("clean_ip"),
+        sni=link.get("sni"),
+        host_header=link.get("host"),
+        fragment_packets=link.get("fragment_packets"),
+        fragment_length=link.get("fragment_length"),
+        fragment_interval=link.get("fragment_interval"),
+        mux_enable=bool(link.get("mux_enable", False)),
+        mux_concurrency=int(link.get("mux_concurrency", 8) or 8),
     )
 
 def uptime() -> str:
@@ -520,6 +583,25 @@ async def api_change_password(request: Request, token=Depends(require_auth)):
     log_activity("auth", "رمز عبور پنل تغییر کرد", "ok")
     return {"ok": True}
 
+# ── Settings API (Cloudflare Worker & Clean IP) ──────────────────────────────
+@app.get("/api/settings")
+async def get_settings(_=Depends(require_auth)):
+    return {
+        "worker_domain": SETTINGS.get("worker_domain", ""),
+        "clean_ip": SETTINGS.get("clean_ip", ""),
+    }
+
+@app.post("/api/settings")
+async def update_settings(request: Request, _=Depends(require_auth)):
+    body = await request.json()
+    if "worker_domain" in body:
+        SETTINGS["worker_domain"] = str(body["worker_domain"]).strip()
+    if "clean_ip" in body:
+        SETTINGS["clean_ip"] = str(body["clean_ip"]).strip()
+    await save_state()
+    log_activity("settings", "تنظیمات وورکر کلادفلر بروزرسانی شد", "ok")
+    return {"ok": True, "settings": dict(SETTINGS)}
+
 # ── Stats ─────────────────────────────────────────────────────────────────────
 @app.get("/stats")
 async def get_stats(_=Depends(require_auth)):
@@ -640,11 +722,19 @@ async def make_link(
     note: str = "",
     protocol: str = DEFAULT_PROTOCOL,
     fingerprint: str = DEFAULT_FINGERPRINT,
-    alpn: str = "",
+    alpn: str = "h2,http/1.1",
     port: int = DEFAULT_PORT,
     ip_limit: int = 0,
     speed_limit_bytes: int = 0,
     sub_id: str | None = None,
+    clean_ip: str = "",
+    sni: str = "",
+    host_header: str = "",
+    fragment_packets: str = "tlshello",
+    fragment_length: str = "10-20",
+    fragment_interval: str = "10-20",
+    mux_enable: bool = False,
+    mux_concurrency: int = 8,
 ) -> tuple[str, dict]:
     if protocol not in PROTOCOLS:
         protocol = DEFAULT_PROTOCOL
@@ -666,11 +756,19 @@ async def make_link(
             "is_default": False,
             "protocol": protocol,
             "fingerprint": fingerprint,
-            "alpn": (alpn or "").strip()[:100],
+            "alpn": (alpn or "h2,http/1.1").strip()[:100],
             "port": port,
             "ip_limit": max(0, ip_limit),
             "speed_limit_bytes": max(0, speed_limit_bytes),
             "sub_id": sub_id,
+            "clean_ip": (clean_ip or "").strip(),
+            "sni": (sni or "").strip(),
+            "host": (host_header or "").strip(),
+            "fragment_packets": (fragment_packets or "").strip(),
+            "fragment_length": (fragment_length or "10-20").strip(),
+            "fragment_interval": (fragment_interval or "10-20").strip(),
+            "mux_enable": bool(mux_enable),
+            "mux_concurrency": max(1, int(mux_concurrency or 8)),
         }
     asyncio.create_task(save_state())
     log_activity("link", f"کانفیگ «{LINKS[uid]['label']}» ساخته شد", "ok")
@@ -725,11 +823,19 @@ async def create_link(request: Request, _=Depends(require_auth)):
         note=body.get("note") or "",
         protocol=body.get("protocol") or DEFAULT_PROTOCOL,
         fingerprint=body.get("fingerprint") or DEFAULT_FINGERPRINT,
-        alpn=body.get("alpn") or "",
+        alpn=body.get("alpn") or "h2,http/1.1",
         port=port,
         ip_limit=ip_limit,
         speed_limit_bytes=speed_limit_bytes,
         sub_id=body.get("sub_id"),
+        clean_ip=body.get("clean_ip") or "",
+        sni=body.get("sni") or "",
+        host_header=body.get("host_header") or body.get("host") or "",
+        fragment_packets=body.get("fragment_packets") or "",
+        fragment_length=body.get("fragment_length") or "10-20",
+        fragment_interval=body.get("fragment_interval") or "10-20",
+        mux_enable=bool(body.get("mux_enable", False)),
+        mux_concurrency=int(body.get("mux_concurrency") or 8),
     )
 
     host = get_host(request)
@@ -809,6 +915,20 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             except (TypeError, ValueError):
                 il = 0
             link["ip_limit"] = max(0, il)
+        if "clean_ip" in body:
+            link["clean_ip"] = str(body.get("clean_ip") or "").strip()
+        if "sni" in body:
+            link["sni"] = str(body.get("sni") or "").strip()
+        if "host" in body or "host_header" in body:
+            link["host"] = str(body.get("host_header") or body.get("host") or "").strip()
+        if "fragment_packets" in body:
+            link["fragment_packets"] = str(body.get("fragment_packets") or "").strip()
+        if "fragment_length" in body:
+            link["fragment_length"] = str(body.get("fragment_length") or "10-20").strip()
+        if "fragment_interval" in body:
+            link["fragment_interval"] = str(body.get("fragment_interval") or "10-20").strip()
+        if "mux_concurrency" in body:
+            link["mux_concurrency"] = max(1, int(body.get("mux_concurrency") or 8))
         if "speed_limit_value" in body:
             sv = float(body.get("speed_limit_value") or 0)
             su = body.get("speed_limit_unit") or "MBIT"
@@ -817,7 +937,7 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             reset_bucket(uid)
         if "sub_id" in body:
             link["sub_id"] = body["sub_id"] if body["sub_id"] else None
-        if any(k in body for k in ("label", "protocol", "note", "limit_value", "expires_days", "fingerprint", "alpn", "port", "ip_limit", "speed_limit_value", "sub_id")):
+        if any(k in body for k in ("label", "protocol", "note", "limit_value", "expires_days", "fingerprint", "alpn", "port", "ip_limit", "speed_limit_value", "sub_id", "clean_ip", "sni", "host", "fragment_packets", "mux_enable")):
             log_activity("link", f"کانفیگ «{link['label']}» ویرایش شد", "info")
 
     asyncio.create_task(save_state())

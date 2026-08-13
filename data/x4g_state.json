@@ -67,6 +67,48 @@
       "ip_limit": 0,
       "speed_limit_bytes": 0,
       "sub_id": null
+    },
+    "f0e9c6da-273d-4132-2703-c8e6e7a29a45": {
+      "label": "Worker-Config",
+      "limit_bytes": 0,
+      "used_bytes": 0,
+      "created_at": "2026-08-13T20:28:44.799136",
+      "active": true,
+      "expires_at": null,
+      "note": "",
+      "is_default": false,
+      "protocol": "vless-ws",
+      "fingerprint": "chrome",
+      "alpn": "",
+      "port": 443,
+      "ip_limit": 0,
+      "speed_limit_bytes": 0,
+      "sub_id": null
+    },
+    "b0223a3b-e640-9661-888f-58640a699374": {
+      "label": "Advanced-VLESS-Test",
+      "limit_bytes": 0,
+      "used_bytes": 0,
+      "created_at": "2026-08-13T21:06:56.567881",
+      "active": true,
+      "expires_at": null,
+      "note": "",
+      "is_default": false,
+      "protocol": "vless-ws",
+      "fingerprint": "chrome",
+      "alpn": "h2,http/1.1",
+      "port": 443,
+      "ip_limit": 0,
+      "speed_limit_bytes": 0,
+      "sub_id": null,
+      "clean_ip": "104.18.2.3",
+      "sni": "custom-sni.mydomain.com",
+      "host": "custom-host.mydomain.com",
+      "fragment_packets": "tlshello",
+      "fragment_length": "10-20",
+      "fragment_interval": "10-20",
+      "mux_enable": true,
+      "mux_concurrency": 8
     }
   },
   "subs": {
@@ -82,6 +124,10 @@
       "note": "تست سیستم اشتراک جدید"
     }
   },
+  "settings": {
+    "worker_domain": "worker.mydomain.com",
+    "clean_ip": "104.21.10.15"
+  },
   "password_hash": "da4594aaf215467d03f1dd1468f78fb8a2c8a45bbd66a28434ae113707b8a097",
-  "saved_at": "2026-08-13T19:50:16.414702"
+  "saved_at": "2026-08-13T21:06:56.570026"
 }

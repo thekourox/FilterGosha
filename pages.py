@@ -247,6 +247,7 @@ select.inp{appearance:none;cursor:pointer}
     <div class="nav-it" data-pg="links"><i class="ti ti-link"></i> کانفیگ‌ها <span class="nav-badge" id="links-nb">0</span></div>
     <div class="nav-it" data-pg="connections"><i class="ti ti-plug-connected"></i> اتصالات <span class="nav-badge" id="conns-nb">0</span></div>
     <div class="nav-sec">سیستم</div>
+    <div class="nav-it" data-pg="settings"><i class="ti ti-brand-cloudflare"></i> تنظیمات وورکر</div>
     <div class="nav-it" data-pg="logs"><i class="ti ti-history"></i> لاگ فعالیت‌ها</div>
     <div class="nav-it" data-pg="errors"><i class="ti ti-alert-triangle"></i> خطاها</div>
   </div>
@@ -320,6 +321,42 @@ select.inp{appearance:none;cursor:pointer}
     <div class="tb-right"><button class="btn btn-g" onclick="loadConns()"><i class="ti ti-refresh"></i> رفرش</button></div>
   </div>
   <div class="card"><div id="conns-table">در حال بارگذاری...</div></div>
+</section>
+
+<!-- PAGE: SETTINGS (CLOUDFLARE WORKER) -->
+<section class="pg" id="pg-settings">
+  <div class="topbar">
+    <div><div class="tb-title"><i class="ti ti-brand-cloudflare"></i> تنظیمات Cloudflare Worker (DPI Bypass)</div><div class="tb-sub">عبور از اختلال اینترنت ایرانسل و رایتل با پروکسی معکوس کلادفلر</div></div>
+    <div class="tb-right"><button class="btn btn-g" onclick="loadSettings()"><i class="ti ti-refresh"></i> رفرش</button></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title"><i class="ti ti-settings"></i> تنظیمات دامنه وورکر و آی‌پی تمیز</div>
+    <form id="form-settings">
+      <div class="form-g">
+        <label>دامنه وورکر کلادفلر (WORKER_DOMAIN)</label>
+        <input class="inp" id="st-worker-domain" placeholder="مثلاً: worker.mydomain.com یا x4g-proxy.sub.workers.dev">
+        <div style="font-size:10.5px;color:var(--t3);margin-top:4px">دامنه اختصاصی یا زیردامنه وورکر کلادفلر که کلاینت‌ها به آن متصل می‌شوند.</div>
+      </div>
+      <div class="form-g">
+        <label>آی‌پی تمیز کلادفلر (CLEAN_IP - اختیاری)</label>
+        <input class="inp" id="st-clean-ip" placeholder="مثلاً: 104.21.x.x (در صورت خالی بودن، از خود دامنه وورکر استفاده می‌شود)">
+        <div style="font-size:10.5px;color:var(--t3);margin-top:4px">آی‌پی تمیز کلادفلر جهت درج در فیلد address لینک‌های VLESS کلاینت.</div>
+      </div>
+      <button class="btn btn-p" type="submit" style="margin-top:10px"><i class="ti ti-check"></i> ذخیره تنظیمات وورکر</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span><i class="ti ti-code"></i> اسکریپت Cloudflare Worker (Reverse Proxy)</span>
+      <button class="btn btn-sm btn-g" onclick="copyWorkerScript()"><i class="ti ti-copy"></i> کپی کد Worker</button>
+    </div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px">
+      این کد را کپی کرده و در پنل کلادفلر (بخش Workers & Pages -> Create Worker) قرار داده و Deploy کنید.
+    </div>
+    <textarea id="worker-code-box" readonly style="width:100%;height:220px;background:rgba(0,0,0,0.4);border:1px solid var(--card-b);color:var(--accent);font-family:ui-monospace,monospace;font-size:11px;padding:12px;border-radius:10px;outline:none;resize:vertical"></textarea>
+  </div>
 </section>
 
 <!-- PAGE 5: LOGS -->
@@ -400,6 +437,41 @@ select.inp{appearance:none;cursor:pointer}
         <div class="form-g"><label>محدودیت آی‌پی (0 = نامحدود)</label><input class="inp" type="number" id="nl-iplimit" value="0"></div>
       </div>
       <div class="form-g"><label>توضیحات</label><input class="inp" id="nl-note" placeholder="توضیحات اختیاری..."></div>
+      
+      <!-- ADVANCED SETTINGS ACCORDION -->
+      <div style="margin-top:14px;border-top:1px dashed var(--card-b);padding-top:10px">
+        <button type="button" class="btn btn-sm btn-g" onclick="const box=document.getElementById('adv-settings-box');box.style.display=box.style.display==='none'?'block':'none'" style="width:100%;justify-content:space-between">
+          <span><i class="ti ti-adjustments"></i> تنظیمات پیشرفته (ALPN, Fragment, Mux, SNI, Clean IP)</span>
+          <i class="ti ti-chevron-down"></i>
+        </button>
+        <div id="adv-settings-box" style="display:none;margin-top:12px;padding:14px;background:rgba(0,0,0,0.25);border:1px solid var(--card-b);border-radius:14px">
+          <div class="form-row">
+            <div class="form-g"><label>آی‌پی تمیز اختصاصی (Clean IP)</label><input class="inp" id="nl-clean-ip" placeholder="مثلاً: 104.21.x.x"></div>
+            <div class="form-g"><label>SNI اختصاصی</label><input class="inp" id="nl-sni" placeholder="مثلاً: sni.domain.com"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-g"><label>Host Header اختصاصی</label><input class="inp" id="nl-host" placeholder="مثلاً: host.domain.com"></div>
+            <div class="form-g"><label>ALPN</label><input class="inp" id="nl-alpn" value="h2,http/1.1" placeholder="h2,http/1.1"></div>
+          </div>
+          <div style="font-weight:700;font-size:11px;color:var(--t2);margin:10px 0 6px"><i class="ti ti-scissors"></i> تنظیمات Fragment (ضد فیلترینگ / Anti-DPI)</div>
+          <div class="form-row">
+            <div class="form-g"><label>نوع پکت Fragment</label><input class="inp" id="nl-fg-packets" value="tlshello" placeholder="tlshello یا 1-3"></div>
+            <div class="form-g"><label>طول Fragment (Length)</label><input class="inp" id="nl-fg-len" value="10-20" placeholder="10-20"></div>
+          </div>
+          <div class="form-g"><label>فاصله زمانی Fragment (Interval)</label><input class="inp" id="nl-fg-interval" value="10-20" placeholder="10-20"></div>
+          <div style="font-weight:700;font-size:11px;color:var(--t2);margin:10px 0 6px"><i class="ti ti-arrows-join-2"></i> تنظیمات Multiplexing (Mux)</div>
+          <div class="form-row" style="align-items:center">
+            <div class="form-g" style="margin-bottom:0">
+              <label class="cfg-chk-item" style="padding:0">
+                <input type="checkbox" id="nl-mux-enable">
+                <span>فعال‌سازی Mux (Multiplexing)</span>
+              </label>
+            </div>
+            <div class="form-g" style="margin-bottom:0"><label>همزمانی Mux (Concurrency)</label><input class="inp" type="number" id="nl-mux-concurrency" value="8"></div>
+          </div>
+        </div>
+      </div>
+
       <button class="btn btn-p" type="submit" style="width:100%;margin-top:14px;justify-content:center"><i class="ti ti-check"></i> ذخیره کانفیگ</button>
     </form>
   </div>
@@ -445,7 +517,7 @@ overlay.addEventListener('click',closeSb);
 function navTo(name){
   document.querySelectorAll('.nav-it').forEach(n=>n.classList.toggle('on',n.dataset.pg===name));
   document.querySelectorAll('.pg').forEach(p=>p.classList.toggle('on',p.id==='pg-'+name));
-  const loaders={overview:fetchStats,subs:loadSubs,links:loadLinks,connections:loadConns,logs:loadActivity,errors:fetchStats};
+  const loaders={overview:fetchStats,subs:loadSubs,links:loadLinks,connections:loadConns,settings:loadSettings,logs:loadActivity,errors:fetchStats};
   if(loaders[name])loaders[name]();
   closeSb();window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -455,6 +527,89 @@ document.getElementById('logout-btn').addEventListener('click',async()=>{
   await fetch('/api/logout',{method:'POST'});
   location.href='/login';
 });
+
+const WORKER_SCRIPT_TEMPLATE = `/**
+ * Cloudflare Worker Reverse Proxy for X4G Panel (VLESS + WebSocket + TLS)
+ */
+const DEFAULT_BACKEND_HOST = "x4g-backend.up.railway.app";
+
+export default {
+  async fetch(request, env, ctx) {
+    try {
+      const backendHost = env.BACKEND_HOST || DEFAULT_BACKEND_HOST;
+      const url = new URL(request.url);
+      url.hostname = backendHost;
+      url.protocol = "https:";
+
+      const headers = new Headers(request.headers);
+      headers.set("Host", backendHost);
+      headers.set("X-Forwarded-Host", request.headers.get("Host") || url.hostname);
+      headers.set("X-Forwarded-Proto", "https");
+
+      const clientIp = request.headers.get("CF-Connecting-IP");
+      if (clientIp) {
+        headers.set("X-Real-IP", clientIp);
+        const existingFwd = request.headers.get("X-Forwarded-For");
+        headers.set("X-Forwarded-For", existingFwd ? \`\${existingFwd}, \${clientIp}\` : clientIp);
+      }
+
+      const fetchInit = {
+        method: request.method,
+        headers: headers,
+        redirect: "manual",
+      };
+
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        fetchInit.body = request.body;
+      }
+
+      const response = await fetch(url.toString(), fetchInit);
+      const responseHeaders = new Headers(response.headers);
+      responseHeaders.set("Access-Control-Allow-Origin", "*");
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      });
+    } catch (err) {
+      return new Response(\`Cloudflare Worker Proxy Error: \${err.message}\`, { status: 502 });
+    }
+  },
+};`;
+
+async function loadSettings(){
+  try{
+    const r=await fetch('/api/settings'),d=await r.json();
+    document.getElementById('st-worker-domain').value = d.worker_domain||'';
+    document.getElementById('st-clean-ip').value = d.clean_ip||'';
+    document.getElementById('worker-code-box').value = WORKER_SCRIPT_TEMPLATE;
+  }catch(e){toast('خطا در دریافت تنظیمات','err')}
+}
+
+document.addEventListener('submit',async e=>{
+  if(e.target && e.target.id==='form-settings'){
+    e.preventDefault();
+    const payload = {
+      worker_domain: document.getElementById('st-worker-domain').value.trim(),
+      clean_ip: document.getElementById('st-clean-ip').value.trim(),
+    };
+    try{
+      const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(r.ok){
+        toast('تنظیمات وورکر ذخیره شد ✓','ok');
+        loadSettings();
+      }else{
+        toast('خطا در ذخیره تنظیمات','err');
+      }
+    }catch(err){toast('خطا در ارتباط با سرور','err')}
+  }
+});
+
+function copyWorkerScript(){
+  const code = document.getElementById('worker-code-box').value;
+  navigator.clipboard.writeText(code).then(()=>toast('کد Cloudflare Worker کپی شد ✓','ok'));
+}
 
 // STATS & DASHBOARD OVERVIEW
 let ch1;
@@ -690,6 +845,15 @@ document.getElementById('form-link').addEventListener('submit',async e=>{
     expires_days: parseInt(document.getElementById('nl-exp').value)||0,
     ip_limit: parseInt(document.getElementById('nl-iplimit').value)||0,
     note: document.getElementById('nl-note').value.trim(),
+    clean_ip: document.getElementById('nl-clean-ip').value.trim(),
+    sni: document.getElementById('nl-sni').value.trim(),
+    host_header: document.getElementById('nl-host').value.trim(),
+    alpn: document.getElementById('nl-alpn').value.trim(),
+    fragment_packets: document.getElementById('nl-fg-packets').value.trim(),
+    fragment_length: document.getElementById('nl-fg-len').value.trim(),
+    fragment_interval: document.getElementById('nl-fg-interval').value.trim(),
+    mux_enable: document.getElementById('nl-mux-enable').checked,
+    mux_concurrency: parseInt(document.getElementById('nl-mux-concurrency').value)||8,
   };
   try{
     const r=await fetch('/api/links',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
