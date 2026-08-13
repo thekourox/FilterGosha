@@ -1,6 +1,4 @@
 # relay_vless.py
-# بخش VLESS Relay — جدا شده از main.py (منطق اصلی دست‌نخورده)
-# تغییر: ثبت IP واقعی کلاینت (با احتساب هدر x-forwarded-for پشت پراکسی) در connections
 
 import asyncio
 import secrets
@@ -8,20 +6,6 @@ from datetime import datetime
 
 from fastapi import WebSocket, WebSocketDisconnect
 
-from main import (
-    LINKS,
-    LINKS_LOCK,
-    stats,
-    hourly_traffic,
-    connections,
-    error_logs,
-    logger,
-    is_link_allowed,
-    is_ip_allowed,
-    save_state,
-    log_activity,
-    now_ir,
-)
 from speed_limit import throttle
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -61,6 +45,7 @@ async def parse_vless_header(chunk: bytes):
     return command, address, port, chunk[pos:]
 
 async def check_and_use(uid: str, n: int) -> bool:
+    from main import LINKS, LINKS_LOCK, stats, hourly_traffic, is_link_allowed, now_ir
     async with LINKS_LOCK:
         link = LINKS.get(uid)
         if link is None:
@@ -73,6 +58,7 @@ async def check_and_use(uid: str, n: int) -> bool:
     return True
 
 async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: str, uid: str):
+    from main import stats, connections
     try:
         while True:
             msg = await ws.receive()
@@ -99,6 +85,7 @@ async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: 
             pass
 
 async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: str, uid: str):
+    from main import connections
     first = True
     try:
         while True:
@@ -117,6 +104,7 @@ async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: 
         pass
 
 async def websocket_tunnel(ws: WebSocket, uuid: str):
+    from main import LINKS, LINKS_LOCK, is_link_allowed, is_ip_allowed, logger, log_activity, connections, stats, error_logs, save_state
     await ws.accept()
 
     async with LINKS_LOCK:

@@ -1,0 +1,36 @@
+{
+  "links": {
+    "0e92e425-7f0e-abcc-c461-6dc514ec884d": {
+      "label": "VLESS gRPC Germany",
+      "limit_bytes": 0,
+      "used_bytes": 0,
+      "created_at": "2026-08-13T19:20:10.684606",
+      "active": true,
+      "expires_at": null,
+      "note": "",
+      "is_default": false,
+      "protocol": "vless-grpc",
+      "fingerprint": "chrome",
+      "alpn": "",
+      "port": 443,
+      "ip_limit": 0,
+      "speed_limit_bytes": 0,
+      "sub_id": "5b556baec4ce7e18"
+    }
+  },
+  "subs": {
+    "5b556baec4ce7e18": {
+      "label": "اشتراک طلایی آپدیت شده",
+      "limit_bytes": 107374182400,
+      "used_bytes": 0,
+      "created_at": "2026-08-13T19:20:10.682636",
+      "expires_at": "2026-09-12T19:20:10.682600",
+      "active": true,
+      "ip_limit": 2,
+      "speed_limit_bytes": 1310720,
+      "note": "تست سیستم اشتراک جدید"
+    }
+  },
+  "password_hash": "da4594aaf215467d03f1dd1468f78fb8a2c8a45bbd66a28434ae113707b8a097",
+  "saved_at": "2026-08-13T19:20:28.350722"
+}

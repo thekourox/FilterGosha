@@ -5,8 +5,6 @@
 import asyncio
 import time
 
-from main import LINKS
-
 # هر uuid یک Bucket جدا داره؛ Bucket با نرخ صفر (بدون محدودیت) اصلاً ساخته نمی‌شه.
 _buckets: dict = {}
 
@@ -53,12 +51,21 @@ def _get_bucket(uuid: str, rate: int) -> _Bucket:
 
 
 async def throttle(uuid: str, nbytes: int):
-    """اگه کانفیگ محدودیت سرعت داشته باشه (speed_limit_bytes > 0)، تا نوبتِ ارسال
-    این تعداد بایت صبر می‌کنه. اگه محدودیتی نباشه، فوری برمی‌گرده (بدون سربار محسوس)."""
+    """اگه کانفیگ یا اشتراک والد آن محدودیت سرعت داشته باشه، تا زمان آماده‌سازی بایت‌ها مکث می‌کند."""
     if nbytes <= 0:
         return
+    from main import LINKS, SUBS
     link = LINKS.get(uuid)
-    rate = int((link or {}).get("speed_limit_bytes", 0) or 0)
+    if not link:
+        return
+    rate = int(link.get("speed_limit_bytes", 0) or 0)
+    sub_id = link.get("sub_id")
+    if sub_id:
+        sub = SUBS.get(sub_id)
+        if sub:
+            sub_rate = int(sub.get("speed_limit_bytes", 0) or 0)
+            if sub_rate > 0:
+                rate = sub_rate if rate <= 0 else min(rate, sub_rate)
     if rate <= 0:
         return
     bucket = _get_bucket(uuid, rate)
