@@ -8,13 +8,14 @@ LOGIN_HTML = r"""<!DOCTYPE html>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ورود · توسط Kourosh</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Vazirmatn',sans-serif !important}
 :root{--bg:#060a14;--card:rgba(12,19,38,0.92);--accent:#10b981;--accent2:#059669;--text:#E8F4FF;--dim:#48577A;--mid:#8AA0C4;--border:rgba(16,185,129,0.2)}
-html,body{height:100%;overflow:hidden}
-body{font-family:'Vazirmatn',sans-serif;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Vazirmatn',sans-serif !important}
+body{display:flex;align-items:center;justify-content:center;padding:20px}
 .bg{position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(16,185,129,0.12),transparent 70%),var(--bg);z-index:0}
 .grid{position:fixed;inset:0;background-image:linear-gradient(rgba(16,185,129,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.03) 1px,transparent 1px);background-size:44px 44px;z-index:0}
 .orb{position:fixed;border-radius:50%;filter:blur(90px);z-index:0;animation:fl 9s ease-in-out infinite}
@@ -26,29 +27,29 @@ body{font-family:'Vazirmatn',sans-serif;background:var(--bg);display:flex;align-
 .brand{display:flex;align-items:center;gap:14px;margin-bottom:28px}
 .brand-img{width:48px;height:48px;border-radius:50%;overflow:hidden;border:1px solid var(--border);box-shadow:0 0 20px rgba(16,185,129,0.35);flex-shrink:0}
 .brand-img img{width:100%;height:100%;object-fit:cover}
-.brand-name{font-size:16px;font-weight:700;color:var(--text)}
+.brand-name{font-size:16px;font-weight:800;color:var(--text)}
 .brand-name a{color:inherit;text-decoration:none}
 .brand-sub{font-size:11px;color:var(--dim);margin-top:2px}
-h1{font-size:21px;font-weight:700;color:var(--text);margin-bottom:5px;letter-spacing:-.02em}
+h1{font-size:21px;font-weight:800;color:var(--text);margin-bottom:5px;letter-spacing:-.02em}
 .sub{font-size:12px;color:var(--mid);margin-bottom:24px;line-height:1.6}
 .hint{display:flex;align-items:center;gap:10px;background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.18);border-radius:10px;padding:10px 14px;margin-bottom:20px}
 .hint-label{font-size:11px;color:var(--mid);flex:1}
 .hint-val{font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:var(--accent);background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);padding:4px 11px;border-radius:7px;cursor:pointer;transition:.15s;letter-spacing:.08em}
 .hint-val:hover{background:rgba(16,185,129,0.24)}
 .field{margin-bottom:18px}
-.field label{display:block;font-size:10.5px;font-weight:600;color:var(--mid);margin-bottom:7px;text-transform:uppercase;letter-spacing:.06em}
+.field label{display:block;font-size:10.5px;font-weight:700;color:var(--mid);margin-bottom:7px;text-transform:uppercase;letter-spacing:.06em}
 .inp-wrap{position:relative}
-input[type=password]{width:100%;padding:13px 44px 13px 16px;border-radius:11px;border:1px solid var(--border);background:rgba(0,0,0,.35);color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:.2s}
+input[type=password]{width:100%;padding:13px 44px 13px 16px;border-radius:11px;border:1px solid var(--border);background:rgba(0,0,0,.35);color:var(--text);font-size:14px;outline:none;transition:.2s}
 input[type=password]:focus{border-color:var(--accent);background:rgba(0,0,0,.45);box-shadow:0 0 0 3px rgba(16,185,129,0.15)}
 .ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:18px;pointer-events:none;transition:.2s}
 input:focus+.ic{color:var(--accent)}
 .err{display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#FB8585;align-items:center;gap:8px}
 .err.show{display:flex}
-.btn{width:100%;padding:13px;border-radius:11px;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(16,185,129,.35);transition:.2s;position:relative;overflow:hidden}
+.btn{width:100%;padding:13px;border-radius:11px;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(16,185,129,.35);transition:.2s;position:relative;overflow:hidden}
 .btn:hover{background:linear-gradient(135deg,#059669,#047857)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .footer{margin-top:22px;padding-top:18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--dim)}
-.footer a{color:var(--accent);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px}
+.footer a{color:var(--accent);font-weight:700;text-decoration:none;display:flex;align-items:center;gap:4px}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -104,13 +105,14 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>توسط Kourosh - مدیریت VLESS gRPC</title>
+<title>توسط Kourosh - مدیریت VLESS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:'Vazirmatn',sans-serif !important}
 :root{
   --bg:#060a14;--bg2:#0a1020;--bg3:#0d1428;
   --card:#0c1326;--card-b:rgba(16,185,129,0.14);--card-bh:rgba(16,185,129,0.3);
@@ -121,9 +123,8 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
   --purple:#9D7BF0;--purple-bg:rgba(157,123,240,0.12);--purple-t:#BCA4F7;
   --t1:#EFF4FF;--t2:#8AA0C4;--t3:#48577A;
   --sidebar-w:248px;--radius:16px;--shadow:0 12px 40px rgba(0,0,0,0.5);
-  --serif:'Vazirmatn',sans-serif;
 }
-html,body{min-height:100%;background:var(--bg);font-family:var(--serif);color:var(--t1);font-size:13.5px}
+html,body{min-height:100%;background:var(--bg);color:var(--t1);font-size:13.5px}
 body{display:flex;overflow-x:hidden}
 .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--bg2);border-left:1px solid var(--card-b);display:flex;flex-direction:column;flex-shrink:0;position:fixed;right:0;top:0;bottom:0;z-index:200;transition:transform .25s cubic-bezier(.4,0,.2,1)}
 .logo{display:flex;align-items:center;gap:12px;padding:20px 16px 16px;border-bottom:1px solid var(--card-b)}
@@ -140,7 +141,7 @@ body{display:flex;overflow-x:hidden}
 .nav-it i{font-size:17px}
 .nav-badge{margin-right:auto;background:var(--accent-d);color:var(--accent);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
 .sb-foot{padding:12px 14px;border-top:1px solid var(--card-b)}
-.logout-btn{display:flex;align-items:center;justify-content:center;gap:7px;background:var(--red-bg);color:var(--red-t);border-radius:9px;padding:9px;font-size:12px;font-weight:700;font-family:inherit;border:1px solid rgba(239,68,68,.2);cursor:pointer;width:100%;transition:.15s}
+.logout-btn{display:flex;align-items:center;justify-content:center;gap:7px;background:var(--red-bg);color:var(--red-t);border-radius:9px;padding:9px;font-size:12px;font-weight:700;border:1px solid rgba(239,68,68,.2);cursor:pointer;width:100%;transition:.15s}
 .logout-btn:hover{background:rgba(239,68,68,.25)}
 .main{margin-right:var(--sidebar-w);flex:1;padding:28px 28px 60px;min-width:0}
 .mob-top{display:none;position:fixed;top:0;right:0;left:0;height:52px;background:var(--bg2);border-bottom:1px solid var(--card-b);z-index:150;align-items:center;justify-content:space-between;padding:0 14px}
@@ -174,7 +175,7 @@ body{display:flex;overflow-x:hidden}
 .sr-v{font-weight:700;color:var(--t1)}
 .pg{display:none}
 .pg.on{display:block}
-.btn{font-family:inherit;font-size:12px;font-weight:700;border-radius:10px;padding:8px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:none;transition:all .15s;white-space:nowrap}
+.btn{font-size:12px;font-weight:700;border-radius:10px;padding:8px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:none;transition:all .15s;white-space:nowrap}
 .btn-p{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 3px 14px rgba(16,185,129,.3)}
 .btn-p:hover{background:linear-gradient(135deg,#059669,#047857)}
 .btn-g{background:var(--accent-d);color:var(--accent);border:1px solid var(--card-b)}
@@ -183,7 +184,7 @@ body{display:flex;overflow-x:hidden}
 .btn-d:hover{background:rgba(239,68,68,.25)}
 .btn-amber{background:var(--amber-bg);color:var(--amber-t);border:1px solid rgba(242,163,61,.2)}
 .btn-sm{padding:5px 11px;font-size:11px;border-radius:8px}
-.inp{background:rgba(0,0,0,.3);border:1px solid var(--card-b);color:var(--t1);border-radius:10px;padding:9px 13px;font-family:inherit;font-size:12.5px;outline:none;width:100%;transition:.18s}
+.inp{background:rgba(0,0,0,.3);border:1px solid var(--card-b);color:var(--t1);border-radius:10px;padding:9px 13px;font-size:12.5px;outline:none;width:100%;transition:.18s}
 .inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-d)}
 select.inp{appearance:none;cursor:pointer}
 .form-g{margin-bottom:14px}
@@ -196,12 +197,11 @@ select.inp{appearance:none;cursor:pointer}
 .modal-title{font-size:15px;font-weight:800;color:var(--t1);display:flex;align-items:center;gap:7px}
 .close-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:20px}
 .close-btn:hover{color:var(--red-t)}
-.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--card);border:1px solid var(--card-b);color:var(--t1);border-radius:12px;padding:10px 20px;font-size:12.5px;font-weight:700;opacity:0;transition:all .25s;z-index:999;pointer-events:none;display:flex;align-items:center;gap:7px;box-shadow:var(--shadow)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--card);border:1px solid var(--card-b);color:var(--t1);border-radius:12px;padding:10px 20px;font-size:12.5px;font-weight:700;opacity:0;transition:all .25s;z-index:999;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{border-color:rgba(16,185,129,.4);background:var(--green-bg);color:var(--green-t)}
 .toast.err{border-color:rgba(239,68,68,.4);background:var(--red-bg);color:var(--red-t)}
 .ch{position:relative;height:210px}
-.ch-sm{position:relative;height:170px}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl th{text-align:right;padding:10px 12px;color:var(--t3);font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--card-b)}
 .tbl td{padding:12px;border-bottom:1px solid rgba(16,185,129,0.05);color:var(--t1)}
@@ -238,7 +238,7 @@ select.inp{appearance:none;cursor:pointer}
   <button class="menu-btn" id="close-sb" style="position:absolute;left:10px;top:14px"><i class="ti ti-x"></i></button>
   <div class="logo">
     <div class="logo-img"></div>
-    <div><div class="logo-name"><a href="https://t.me/kouroxlog" target="_blank">توسط Kourosh</a></div><div class="logo-sub">v9.8 · gRPC</div></div>
+    <div><div class="logo-name"><a href="https://t.me/kouroxlog" target="_blank">توسط Kourosh</a></div><div class="logo-sub">v9.8 · gRPC / WS / XHTTP</div></div>
   </div>
   <div class="nav-wrap">
     <div class="nav-sec">پنل</div>
@@ -262,13 +262,13 @@ select.inp{appearance:none;cursor:pointer}
   <div class="topbar">
     <div><div class="tb-title"><i class="ti ti-layout-dashboard"></i> داشبورد اصلی</div><div class="tb-sub" id="last-upd">در حال بارگذاری...</div></div>
     <div class="tb-right">
-      <span class="badge bg-green"><span class="dot dg pulse"></span> gRPC فعال</span>
+      <span class="badge bg-green"><span class="dot dg pulse"></span> سرویس فعال</span>
       <span class="badge bg-blue" id="uptime-badge">—</span>
       <button class="btn btn-g btn-sm" onclick="fetchStats()"><i class="ti ti-refresh"></i> رفرش</button>
     </div>
   </div>
   <div class="metrics">
-    <div class="metric"><div class="m-icon"><i class="ti ti-plug-connected"></i></div><div class="m-label">اتصالات زنده</div><div class="m-val" id="m-conns">—</div><div class="m-sub"><span class="dot dg pulse"></span> VLESS gRPC</div></div>
+    <div class="metric"><div class="m-icon"><i class="ti ti-plug-connected"></i></div><div class="m-label">اتصالات زنده</div><div class="m-val" id="m-conns">—</div><div class="m-sub"><span class="dot dg pulse"></span> آنلاین</div></div>
     <div class="metric"><div class="m-icon"><i class="ti ti-transfer"></i></div><div class="m-label">کل ترافیک</div><div class="m-val" id="m-traffic">—</div><div class="m-sub">از زمان راه‌اندازی</div></div>
     <div class="metric"><div class="m-icon"><i class="ti ti-users-group"></i></div><div class="m-label">اشتراک‌های فعال</div><div class="m-val" id="m-subs">—</div><div class="m-sub" id="m-ssub">از کل</div></div>
     <div class="metric"><div class="m-icon"><i class="ti ti-link"></i></div><div class="m-label">کانفیگ‌های فعال</div><div class="m-val" id="m-alinks">—</div><div class="m-sub" id="m-lsub">از کل</div></div>
@@ -276,10 +276,10 @@ select.inp{appearance:none;cursor:pointer}
   <div class="g3">
     <div class="card"><div class="card-title"><i class="ti ti-chart-area"></i> مصرف ساعتی ترافیک (MB)</div><div class="ch"><canvas id="ch1"></canvas></div></div>
     <div class="card">
-      <div class="card-title"><i class="ti ti-activity"></i> وضعیت سرویس gRPC</div>
-      <div class="sr"><span class="sr-k"><i class="ti ti-shield-check"></i> UUID Auth</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
-      <div class="sr"><span class="sr-k"><i class="ti ti-route"></i> VLESS / gRPC</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
-      <div class="sr"><span class="sr-k"><i class="ti ti-server"></i> پورت CDN</span><span class="sr-v" style="color:var(--green-t)">443 / 8443</span></div>
+      <div class="card-title"><i class="ti ti-activity"></i> وضعیت پروتکل‌ها</div>
+      <div class="sr"><span class="sr-k"><i class="ti ti-route"></i> VLESS gRPC</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
+      <div class="sr"><span class="sr-k"><i class="ti ti-wifi"></i> VLESS WebSocket</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
+      <div class="sr"><span class="sr-k"><i class="ti ti-bolt"></i> XHTTP Ultra (Auto)</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
       <div class="sr"><span class="sr-k"><i class="ti ti-clock"></i> آپتایم</span><span class="sr-v" id="uptime-inline">—</span></div>
     </div>
   </div>
@@ -302,7 +302,7 @@ select.inp{appearance:none;cursor:pointer}
 <!-- PAGE 3: LINKS -->
 <section class="pg" id="pg-links">
   <div class="topbar">
-    <div><div class="tb-title"><i class="ti ti-link"></i> مدیریت کانفیگ‌ها</div><div class="tb-sub">مدیریت کانفیگ‌های VLESS gRPC</div></div>
+    <div><div class="tb-title"><i class="ti ti-link"></i> مدیریت کانفیگ‌ها</div><div class="tb-sub">ساخت و مدیریت کانفیگ‌های VLESS (gRPC / WS / XHTTP)</div></div>
     <div class="tb-right">
       <button class="btn btn-p" onclick="openLinkModal()"><i class="ti ti-plus"></i> کانفیگ جدید</button>
       <button class="btn btn-g" onclick="loadLinks()"><i class="ti ti-refresh"></i></button>
@@ -316,7 +316,7 @@ select.inp{appearance:none;cursor:pointer}
 <!-- PAGE 4: CONNECTIONS -->
 <section class="pg" id="pg-connections">
   <div class="topbar">
-    <div><div class="tb-title"><i class="ti ti-plug-connected"></i> اتصالات زنده</div><div class="tb-sub">لیست اتصالات فعال gRPC کلاینت‌ها</div></div>
+    <div><div class="tb-title"><i class="ti ti-plug-connected"></i> اتصالات زنده</div><div class="tb-sub">لیست اتصالات فعال کلاینت‌ها</div></div>
     <div class="tb-right"><button class="btn btn-g" onclick="loadConns()"><i class="ti ti-refresh"></i> رفرش</button></div>
   </div>
   <div class="card"><div id="conns-table">در حال بارگذاری...</div></div>
@@ -382,6 +382,14 @@ select.inp{appearance:none;cursor:pointer}
     </div>
     <form id="form-link">
       <div class="form-g"><label>عنوان کانفیگ</label><input class="inp" id="nl-label" placeholder="مثلاً: VLESS gRPC Direct" required></div>
+      <div class="form-g">
+        <label>پروتکل / ترابرد</label>
+        <select class="inp" id="nl-proto">
+          <option value="vless-grpc" selected>VLESS · gRPC (پیش‌فرض)</option>
+          <option value="vless-ws">VLESS · WebSocket</option>
+          <option value="xhttp">XHTTP Ultra · Mode: auto</option>
+        </select>
+      </div>
       <div class="form-g"><label>اشتراک والد (اختیاری)</label><select class="inp" id="nl-sub"><option value="">بدون اشتراک (مستقل)</option></select></div>
       <div class="form-row">
         <div class="form-g"><label>حجم (0 = نامحدود)</label><input class="inp" type="number" step="0.1" id="nl-val" value="0"></div>
@@ -627,6 +635,12 @@ async function loadLinks(){
   }catch(e){toast('خطا در بارگذاری کانفیگ‌ها','err')}
 }
 
+function protoChipText(proto){
+  if(proto==='vless-ws') return '<span class="badge bg-blue"><i class="ti ti-wifi"></i> VLESS WS</span>';
+  if(proto==='xhttp') return '<span class="badge bg-green" style="background:var(--purple-bg);color:var(--purple-t)"><i class="ti ti-bolt"></i> XHTTP Auto</span>';
+  return '<span class="badge bg-green"><i class="ti ti-route"></i> VLESS gRPC</span>';
+}
+
 function renderLinks(links){
   const el=document.getElementById('links-list');
   if(!links.length){
@@ -640,7 +654,7 @@ function renderLinks(links){
           <div>
             <div class="sub-label">${esc(l.label)}</div>
             <div style="font-size:10.5px;color:var(--t3);margin-top:4px">
-              <span class="badge bg-green"><i class="ti ti-route"></i> VLESS gRPC (port :${l.port||443})</span>
+              ${protoChipText(l.protocol)}
               <span class="badge bg-blue" style="margin-right:6px"><i class="ti ti-plug-connected"></i> ${l.connected_ips||0} آی‌پی متصل</span>
             </div>
           </div>
@@ -669,6 +683,7 @@ document.getElementById('form-link').addEventListener('submit',async e=>{
   e.preventDefault();
   const payload={
     label: document.getElementById('nl-label').value.trim(),
+    protocol: document.getElementById('nl-proto').value||'vless-grpc',
     sub_id: document.getElementById('nl-sub').value||null,
     limit_value: parseFloat(document.getElementById('nl-val').value)||0,
     limit_unit: document.getElementById('nl-unit').value,
@@ -745,17 +760,18 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 def get_public_page_html(uuid_key: str) -> str:
-    """صفحه پابلیک ساب - سیستم اشتراک‌ها و کانفیگ‌های gRPC توسط Kourosh"""
+    """صفحه پابلیک ساب - سیستم اشتراک‌ها و کانفیگ‌های gRPC توسط Kourosh با فونت وزیرمتن"""
     return f"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>توسط Kourosh Sub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
-*{{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}}
+*{{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:'Vazirmatn',sans-serif !important}}
 :root{{
   --bg:#060a14;--bg2:#0a1020;--bg3:#0d1428;
   --card:#0c1326;--card-b:rgba(16,185,129,0.14);--card-bh:rgba(16,185,129,0.3);
@@ -766,9 +782,8 @@ def get_public_page_html(uuid_key: str) -> str:
   --purple:#9D7BF0;--purple-bg:rgba(157,123,240,0.12);--purple-t:#BCA4F7;
   --t1:#EFF4FF;--t2:#8AA0C4;--t3:#48577A;
   --radius:18px;--shadow:0 12px 40px rgba(0,0,0,0.45);
-  --serif:'Vazirmatn',sans-serif;
 }}
-html,body{{min-height:100%;background:var(--bg);font-family:var(--serif);color:var(--t1);font-size:14px}}
+html,body{{min-height:100%;background:var(--bg);font-family:'Vazirmatn',sans-serif !important;color:var(--t1);font-size:14px}}
 .bg-fx{{position:fixed;inset:0;background:radial-gradient(ellipse 70% 45% at 50% -8%,rgba(16,185,129,0.14),transparent 62%),var(--bg);z-index:0;pointer-events:none}}
 .grid-fx{{position:fixed;inset:0;background-image:linear-gradient(rgba(16,185,129,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.03) 1px,transparent 1px);background-size:46px 46px;z-index:0;pointer-events:none}}
 .wrap{{position:relative;z-index:10;max-width:800px;margin:0 auto;padding:24px 16px 64px}}
@@ -796,7 +811,7 @@ html,body{{min-height:100%;background:var(--bg);font-family:var(--serif);color:v
 .copy-all-text{{flex:1;min-width:160px}}
 .copy-all-title{{font-size:13.5px;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px}}
 .copy-all-sub{{font-size:10px;color:rgba(255,255,255,.8);margin-top:3px}}
-.copy-all-btn{{background:#fff;color:#047857;border:none;border-radius:12px;padding:10px 19px;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.18s;white-space:nowrap}}
+.copy-all-btn{{background:#fff;color:#047857;border:none;border-radius:12px;padding:10px 19px;font-size:12.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.18s;white-space:nowrap}}
 .copy-all-btn:hover{{transform:translateY(-1px)}}
 
 .cfg-card{{background:var(--card);border:1px solid var(--card-b);border-radius:18px;margin-bottom:14px;overflow:hidden}}
@@ -812,7 +827,7 @@ html,body{{min-height:100%;background:var(--bg);font-family:var(--serif);color:v
 .cfg-bottom{{padding:15px 19px;border-top:1px dashed var(--card-b)}}
 .cfg-vless{{background:rgba(0,0,0,.3);border:1px solid var(--card-b);border-radius:10px;padding:11px 13px;font-size:10px;font-family:ui-monospace,monospace;color:var(--accent);word-break:break-all;margin-top:9px}}
 
-.btn{{font-family:inherit;font-size:11.5px;font-weight:700;border-radius:10px;padding:8px 15px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border:none;transition:all .15s}}
+.btn{{font-size:11.5px;font-weight:700;border-radius:10px;padding:8px 15px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border:none;transition:all .15s}}
 .btn-p{{background:linear-gradient(135deg,#10b981,#059669);color:#fff}}
 .btn-g{{background:var(--accent-d);color:var(--accent);border:1px solid var(--card-b)}}
 
@@ -844,7 +859,7 @@ html,body{{min-height:100%;background:var(--bg);font-family:var(--serif);color:v
   <div class="top">
     <div class="brand">
       <div class="brand-img"></div>
-      <div><div class="brand-name"><a href="https://t.me/kouroxlog" target="_blank">توسط Kourosh</a></div><div class="brand-sub">gRPC Secure Sub</div></div>
+      <div><div class="brand-name"><a href="https://t.me/kouroxlog" target="_blank">توسط Kourosh</a></div><div class="brand-sub">Secure Sub</div></div>
     </div>
   </div>
   <div id="root">
@@ -890,7 +905,7 @@ function renderContent(d){{
 
   document.getElementById('root').innerHTML=`
     <div class="sub-info">
-      <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;margin-bottom:8px"><i class="ti ti-users-group"></i> اشتراک اختصاصی VLESS gRPC</div>
+      <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;margin-bottom:8px"><i class="ti ti-users-group"></i> اشتراک اختصاصی VLESS</div>
       <div class="sub-name">${{esc(d.name)}}</div>
       ${{d.desc ? `<div class="sub-desc">${{esc(d.desc)}}</div>` : ''}}
       <div style="font-size:10.5px;color:var(--t3);margin-bottom:14px"><i class="ti ti-clock"></i> بروزرسانی: ${{new Date().toLocaleTimeString('fa-IR')}}</div>
@@ -911,7 +926,7 @@ function renderContent(d){{
     <div class="copy-all-bar">
       <div class="copy-all-text">
         <div class="copy-all-title"><i class="ti ti-copy"></i> کپی همه‌ی کانفیگ‌ها</div>
-        <div class="copy-all-sub">تمام کانفیگ‌های gRPC فعال این اشتراک را یک‌جا کپی کن</div>
+        <div class="copy-all-sub">تمام کانفیگ‌های فعال این اشتراک را یک‌جا کپی کن</div>
       </div>
       <button class="copy-all-btn" onclick="copyAllConfigs()"><i class="ti ti-clipboard-copy"></i> کپی همه (${{activeCount}})</button>
     </div>
@@ -934,7 +949,7 @@ function renderContent(d){{
       </div>
     </div>
 
-    <div style="font-size:12px;font-weight:800;color:var(--t2);margin-bottom:13px;display:flex;align-items:center;gap:6px"><i class="ti ti-link" style="color:var(--accent)"></i> کانفیگ‌های VLESS gRPC</div>
+    <div style="font-size:12px;font-weight:800;color:var(--t2);margin-bottom:13px;display:flex;align-items:center;gap:6px"><i class="ti ti-link" style="color:var(--accent)"></i> کانفیگ‌های VLESS</div>
     <div>
       ${{d.links.map((l, i) => {{
         const pct = l.limit_bytes === 0 ? 0 : Math.min(100, l.used_bytes / l.limit_bytes * 100);
@@ -946,7 +961,7 @@ function renderContent(d){{
               <div class="cfg-head">
                 <div>
                   <div class="cfg-label">${{esc(l.label)}}</div>
-                  <div style="font-size:10px;color:var(--accent);margin-top:4px"><i class="ti ti-route"></i> VLESS gRPC</div>
+                  <div style="font-size:10px;color:var(--accent);margin-top:4px"><i class="ti ti-route"></i> ${{esc(l.protocol.toUpperCase())}}</div>
                 </div>
                 <span class="cfg-status ${{l.active ? 'ok' : 'no'}}">${{l.active ? '● فعال' : '● غیرفعال'}}</span>
               </div>

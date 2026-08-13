@@ -18,19 +18,6 @@ from datetime import datetime
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import StreamingResponse
-
-from main import (
-    LINKS,
-    LINKS_LOCK,
-    stats,
-    hourly_traffic,
-    connections,
-    error_logs,
-    logger,
-    is_link_allowed,
-    is_ip_allowed,
-    save_state,
-)
 from relay_vless import parse_vless_header, check_and_use
 from speed_limit import throttle
 
@@ -195,6 +182,7 @@ async def _open_tcp_from_header(first_chunk: bytes):
 
 
 async def _check_link(uuid: str):
+    from main import LINKS, LINKS_LOCK, is_link_allowed
     async with LINKS_LOCK:
         link = LINKS.get(uuid)
     if not is_link_allowed(link):
@@ -203,6 +191,7 @@ async def _check_link(uuid: str):
 
 async def _get_or_create_session(uuid: str, mode: str, session_id: str, ip: str = "نامشخص") -> dict:
     """Session بر اساس session_id که خودِ کلاینت در URL فرستاده، lazily ساخته می‌شه."""
+    from main import LINKS, LINKS_LOCK, is_ip_allowed, logger, connections
     async with XHTTP_LOCK:
         sess = xhttp_sessions.get(session_id)
         if sess is not None:
@@ -239,9 +228,7 @@ async def _get_or_create_session(uuid: str, mode: str, session_id: str, ip: str 
 
 
 async def _mark_real_mode(session_id: str, sess: dict, real_mode: str):
-    """وقتی سشن با مود 'auto' ساخته شده، اولین درخواست POST واقعی مشخص می‌کنه
-    که کلاینت در عمل packet-up انتخاب کرده یا stream-up؛ همون‌جا برچسب سشن و
-    اتصال نمایشی رو به‌روز می‌کنیم تا در بخش «اتصالات» درست دیده بشه."""
+    from main import connections
     if sess.get("mode") == real_mode:
         return
     sess["mode"] = real_mode
@@ -251,6 +238,7 @@ async def _mark_real_mode(session_id: str, sess: dict, real_mode: str):
 
 
 async def _teardown(session_id: str):
+    from main import connections, logger
     async with XHTTP_LOCK:
         sess = xhttp_sessions.pop(session_id, None)
     if not sess:
@@ -303,6 +291,7 @@ def ensure_reaper():
 
 
 async def _pump_tcp_to_queue(session_id: str, uuid: str, reader: asyncio.StreamReader, down_q: asyncio.Queue):
+    from main import connections
     first = True
     gate = _QuotaGate(uuid)  # دانلینک هم از همون گیت batched استفاده می‌کنه
     try:
@@ -331,6 +320,7 @@ async def _pump_tcp_to_queue(session_id: str, uuid: str, reader: asyncio.StreamR
 
 async def _open_tcp_for_session(session_id: str, uuid: str, sess: dict, first_chunk: bytes):
     """تونل TCP رو از روی هدر VLESS باز می‌کنه و پمپ دانلینک رو راه می‌اندازه."""
+    from main import logger, save_state
     reader, writer, address, port = await _open_tcp_from_header(first_chunk)
     logger.info(f"connect XHTTP[{sess['mode']}] [{session_id[:8]}] -> {address}:{port}")
     sess["writer"] = writer
@@ -372,6 +362,7 @@ async def xhttp_downlink(uuid: str, session_id: str, request: Request):
 # ══════════════════════════════ PACKET-UP (آپلینک با seq) ══════════════════════════════
 @router.post("/xhttp-siz10/{uuid}/{session_id}/{seq}")
 async def packet_up_upload(uuid: str, session_id: str, seq: int, request: Request):
+    from main import stats, connections, error_logs
     ensure_reaper()
     sess = await _get_or_create_session(uuid, "packet-up", session_id, _req_client_ip(request))
     await _mark_real_mode(session_id, sess, "packet-up")
@@ -434,6 +425,7 @@ async def packet_up_upload(uuid: str, session_id: str, seq: int, request: Reques
 # هر بایت فوری write() می‌شه، فقط «کِی صبر کنیم برای drain» تطبیقیه.
 @router.post("/xhttp-siz10/{uuid}/{session_id}")
 async def stream_up_upload(uuid: str, session_id: str, request: Request):
+    from main import stats, connections, error_logs
     ensure_reaper()
     sess = await _get_or_create_session(uuid, "stream-up", session_id, _req_client_ip(request))
     await _mark_real_mode(session_id, sess, "stream-up")

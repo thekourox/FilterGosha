@@ -16,6 +16,57 @@
       "ip_limit": 0,
       "speed_limit_bytes": 0,
       "sub_id": "5b556baec4ce7e18"
+    },
+    "3786f829-baf1-4b70-3a71-8135c76ba11c": {
+      "label": "VLESS gRPC Test",
+      "limit_bytes": 0,
+      "used_bytes": 0,
+      "created_at": "2026-08-13T19:50:16.382852",
+      "active": true,
+      "expires_at": null,
+      "note": "",
+      "is_default": false,
+      "protocol": "vless-grpc",
+      "fingerprint": "chrome",
+      "alpn": "",
+      "port": 443,
+      "ip_limit": 0,
+      "speed_limit_bytes": 0,
+      "sub_id": null
+    },
+    "7cb8f2fe-ef8c-7b84-573a-532296ff1a4f": {
+      "label": "VLESS WS Test",
+      "limit_bytes": 0,
+      "used_bytes": 0,
+      "created_at": "2026-08-13T19:50:16.385166",
+      "active": true,
+      "expires_at": null,
+      "note": "",
+      "is_default": false,
+      "protocol": "vless-ws",
+      "fingerprint": "chrome",
+      "alpn": "",
+      "port": 443,
+      "ip_limit": 0,
+      "speed_limit_bytes": 0,
+      "sub_id": null
+    },
+    "4b88636e-fd7b-0823-9086-498b4a0dd9b5": {
+      "label": "XHTTP Test",
+      "limit_bytes": 0,
+      "used_bytes": 0,
+      "created_at": "2026-08-13T19:50:16.386525",
+      "active": true,
+      "expires_at": null,
+      "note": "",
+      "is_default": false,
+      "protocol": "xhttp",
+      "fingerprint": "chrome",
+      "alpn": "",
+      "port": 443,
+      "ip_limit": 0,
+      "speed_limit_bytes": 0,
+      "sub_id": null
     }
   },
   "subs": {
@@ -32,5 +83,5 @@
     }
   },
   "password_hash": "da4594aaf215467d03f1dd1468f78fb8a2c8a45bbd66a28434ae113707b8a097",
-  "saved_at": "2026-08-13T19:20:28.350722"
+  "saved_at": "2026-08-13T19:50:16.414702"
 }

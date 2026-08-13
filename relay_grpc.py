@@ -19,6 +19,43 @@ def _grpc_client_ip(request: Request) -> str:
         return real_ip.strip()
     return request.client.host if request.client else "نامشخص"
 
+def encode_varint(n: int) -> bytes:
+    res = bytearray()
+    while True:
+        towrite = n & 0x7F
+        n >>= 7
+        if n:
+            res.append(towrite | 0x80)
+        else:
+            res.append(towrite)
+            break
+    return bytes(res)
+
+def decode_varint(buffer: bytes, offset: int = 0) -> tuple[int, int]:
+    res = 0
+    shift = 0
+    idx = offset
+    while idx < len(buffer):
+        b = buffer[idx]
+        res |= (b & 0x7F) << shift
+        idx += 1
+        if not (b & 0x80):
+            break
+        shift += 7
+    return res, idx
+
+def extract_vless_payload(payload: bytes) -> bytes:
+    """پارس پیام‌های Protobuf استریم gRPC در Xray/v2ray (تگ 0x0a + Length Varint)"""
+    if payload.startswith(b"\x0a"):
+        try:
+            length, start = decode_varint(payload, 1)
+            if len(payload) >= start + length:
+                return payload[start:start+length]
+            return payload[start:]
+        except Exception:
+            return payload
+    return payload
+
 async def unwrap_grpc_frames(request: Request):
     buffer = b""
     async for chunk in request.stream():
@@ -29,10 +66,12 @@ async def unwrap_grpc_frames(request: Request):
                 break
             payload = buffer[5:5+length]
             buffer = buffer[5+length:]
-            yield payload
+            yield extract_vless_payload(payload)
 
 def wrap_grpc_frame(payload: bytes) -> bytes:
-    return struct.pack(">B I", 0, len(payload)) + payload
+    """بسته‌بندی پاسخ‌های TCP در فریم gRPC استاندارد همراه با تگ Protobuf 0x0a"""
+    pb_msg = b"\x0a" + encode_varint(len(payload)) + payload
+    return struct.pack(">B I", 0, len(pb_msg)) + pb_msg
 
 async def grpc_tunnel(request: Request):
     from main import (
@@ -70,7 +109,7 @@ async def grpc_tunnel(request: Request):
         link = LINKS.get(uid)
 
     if not is_link_allowed(link):
-        logger.warning(f"🚫 gRPC rejected uuid={uid[:8]}… (not allowed or quota reached)")
+        logger.warning(f"🚫 gRPC rejected uuid={uid[:8]}… (not allowed)")
         raise HTTPException(status_code=403, detail="not authorized")
 
     if not is_ip_allowed(link, uid, ip):

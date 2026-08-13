@@ -11,7 +11,7 @@ from urllib.parse import quote
 from collections import deque, defaultdict
 from pathlib import Path
 
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, WebSocket
 from fastapi.responses import Response, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -118,7 +118,7 @@ SUBS: dict = {}
 SUBS_LOCK = asyncio.Lock()
 
 # Protocol and configuration standards
-PROTOCOLS = ("vless-grpc",)
+PROTOCOLS = ("vless-grpc", "vless-ws", "xhttp")
 DEFAULT_PROTOCOL = "vless-grpc"
 
 FINGERPRINTS = ("chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized")
@@ -223,21 +223,43 @@ def generate_vless_link(
     alpn: str | None = None,
     port: int | None = None,
 ) -> str:
-    """ساخت VLESS gRPC share-link کاملاً مطابق استانداردهای CDN و Railway"""
+    """ساخت لینک‌های VLESS متناسب با پروتکل انتخاب‌شده (gRPC, WS, XHTTP)"""
     port_val = port or DEFAULT_PORT
     if port_val not in ALLOWED_PORTS:
         port_val = DEFAULT_PORT
 
     service_name = secrets.token_urlsafe(6)
+    proto = (protocol or DEFAULT_PROTOCOL).lower()
     
-    params = {
-        "encryption": "none",
-        "security": "tls",
-        "type": "grpc",
-        "serviceName": service_name,
-        "sni": host,
-        "alpn": "h2",
-    }
+    if proto == "vless-ws":
+        params = {
+            "encryption": "none",
+            "security": "tls",
+            "type": "ws",
+            "host": host,
+            "path": f"/ws/{uuid}",
+            "sni": host,
+        }
+    elif proto == "xhttp":
+        params = {
+            "encryption": "none",
+            "security": "tls",
+            "type": "xhttp",
+            "host": host,
+            "path": f"/xhttp-siz10/{uuid}",
+            "mode": "auto",
+            "sni": host,
+        }
+    else:
+        # Default gRPC
+        params = {
+            "encryption": "none",
+            "security": "tls",
+            "type": "grpc",
+            "serviceName": service_name,
+            "sni": host,
+            "alpn": "h2",
+        }
     
     query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
     return f"vless://{uuid}@{host}:{port_val}?{query}#{quote(remark)}"
@@ -755,6 +777,9 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             log_activity("link", f"کانفیگ «{label}» {'فعال' if link['active'] else 'غیرفعال'} شد", "ok" if link["active"] else "warn")
         if "label" in body:
             link["label"] = str(body["label"])[:60]
+        if "protocol" in body:
+            proto = str(body.get("protocol") or DEFAULT_PROTOCOL).lower()
+            link["protocol"] = proto if proto in PROTOCOLS else DEFAULT_PROTOCOL
         if "note" in body:
             link["note"] = str(body["note"])[:200]
         if "reset_usage" in body and body["reset_usage"]:
@@ -792,7 +817,7 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             reset_bucket(uid)
         if "sub_id" in body:
             link["sub_id"] = body["sub_id"] if body["sub_id"] else None
-        if any(k in body for k in ("label", "note", "limit_value", "expires_days", "fingerprint", "alpn", "port", "ip_limit", "speed_limit_value", "sub_id")):
+        if any(k in body for k in ("label", "protocol", "note", "limit_value", "expires_days", "fingerprint", "alpn", "port", "ip_limit", "speed_limit_value", "sub_id")):
             log_activity("link", f"کانفیگ «{link['label']}» ویرایش شد", "info")
 
     asyncio.create_task(save_state())
@@ -935,12 +960,22 @@ async def delete_sub(sid: str, _=Depends(require_auth)):
     log_activity("sub", f"اشتراک «{label}» حذف شد", "err")
     return {"ok": True, "deleted": sid}
 
-# ── VLESS Relay gRPC Tunnel ───────────────────────────────────────────────────
+# ── VLESS Transport Routes ────────────────────────────────────────────────────
+# 1. VLESS gRPC Tunnel Route
 from relay_grpc import grpc_tunnel
 
-@app.post("/{service_name}/Tun")
-async def grpc_tunnel_route(service_name: str, request: Request):
+@app.post("/{service_name}/{method_name}")
+@app.post("/{service_name}")
+async def grpc_tunnel_route(service_name: str, request: Request, method_name: str = "Tun"):
     return await grpc_tunnel(request)
+
+# 2. VLESS WebSocket Tunnel Route
+from relay_vless import websocket_tunnel
+app.add_api_websocket_route("/ws/{uuid}", websocket_tunnel)
+
+# 3. XHTTP Ultra Router
+from xhttp_siz10 import router as xhttp_router
+app.include_router(xhttp_router)
 
 # ── HTTP Proxy (Optional Utility) ─────────────────────────────────────────────
 _HOP = {"connection","keep-alive","proxy-authenticate","proxy-authorization",
