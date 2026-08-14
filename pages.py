@@ -65,10 +65,6 @@ input:focus+.ic{color:var(--accent)}
     <h1>ورود به پنل مدیریت</h1>
     <p class="sub">رمز عبور را برای دسترسی به داشبورد وارد کنید</p>
     <div class="err" id="err"><i class="ti ti-alert-circle"></i><span id="err-text"></span></div>
-    <div class="hint">
-      <span class="hint-label">رمز پیش‌فرض سیستم</span>
-      <span class="hint-val" onclick="document.getElementById('pw').value='KouroshKING';document.getElementById('pw').focus()">KouroshKING</span>
-    </div>
     <form id="form">
       <div class="field">
         <label>رمز عبور</label>
@@ -344,6 +340,27 @@ select.inp{appearance:none;cursor:pointer}
         <div style="font-size:10.5px;color:var(--t3);margin-top:4px">آی‌پی تمیز کلادفلر جهت درج در فیلد address لینک‌های VLESS کلاینت.</div>
       </div>
       <button class="btn btn-p" type="submit" style="margin-top:10px"><i class="ti ti-check"></i> ذخیره تنظیمات وورکر</button>
+    </form>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title"><i class="ti ti-lock"></i> تغییر رمز عبور مدیریت پنل</div>
+    <form id="form-change-pw">
+      <div class="form-g">
+        <label>رمز عبور فعلی</label>
+        <input class="inp" type="password" id="cpw-current" placeholder="رمز فعلی ورود به پنل" required>
+      </div>
+      <div class="form-row">
+        <div class="form-g">
+          <label>رمز عبور جدید</label>
+          <input class="inp" type="password" id="cpw-new" placeholder="حداقل ۴ کاراکتر" required>
+        </div>
+        <div class="form-g">
+          <label>تکرار رمز عبور جدید</label>
+          <input class="inp" type="password" id="cpw-confirm" placeholder="تکرار رمز جدید" required>
+        </div>
+      </div>
+      <button class="btn btn-p" type="submit" style="margin-top:8px"><i class="ti ti-key"></i> بروزرسانی رمز عبور</button>
     </form>
   </div>
 
@@ -648,6 +665,36 @@ async function loadSettings(){
 }
 
 document.addEventListener('submit',async e=>{
+  if(e.target && e.target.id==='form-change-pw'){
+    e.preventDefault();
+    const cur = document.getElementById('cpw-current').value;
+    const newPw = document.getElementById('cpw-new').value;
+    const conf = document.getElementById('cpw-confirm').value;
+    if(newPw !== conf){
+      toast('رمز عبور جدید و تکرار آن یکسان نیستند','err');
+      return;
+    }
+    if(newPw.length < 4){
+      toast('رمز عبور جدید باید حداقل ۴ کاراکتر باشد','err');
+      return;
+    }
+    try{
+      const r = await fetch('/api/change-password',{
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ current_password: cur, new_password: newPw })
+      });
+      const d = await r.json();
+      if(r.ok){
+        toast('رمز عبور با موفقیت تغییر یافت ✓','ok');
+        document.getElementById('form-change-pw').reset();
+      } else {
+        toast(d.detail || 'خطا در تغییر رمز عبور','err');
+      }
+    }catch(err){
+      toast('خطا در ارتباط با سرور','err');
+    }
+  }
   if(e.target && e.target.id==='form-settings'){
     e.preventDefault();
     const payload = {
