@@ -326,7 +326,7 @@ def generate_vless_link(
         params.append(("mux", "1"))
         params.append(("mux-concurrency", str(mux_concurrency if mux_concurrency > 0 else 8)))
 
-    query = "&".join(f"{k}={quote(str(v))}" for k, v in params)
+    query = "&".join(f"{k}={quote(str(v), safe='')}" for k, v in params)
     return f"vless://{uuid}@{target_addr}:{port_val}?{query}#{quote(remark)}"
 
 def vless_link_for_link(link: dict, uid: str, host: str) -> str:
@@ -835,7 +835,7 @@ async def create_link(request: Request, _=Depends(require_auth)):
         note=body.get("note") or "",
         protocol=body.get("protocol") or DEFAULT_PROTOCOL,
         fingerprint=body.get("fingerprint") or DEFAULT_FINGERPRINT,
-        alpn=body.get("alpn") or "h2,http/1.1",
+        alpn=body.get("alpn") or "",
         port=port,
         ip_limit=ip_limit,
         speed_limit_bytes=speed_limit_bytes,
