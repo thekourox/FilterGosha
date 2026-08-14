@@ -796,6 +796,8 @@ function protoChipText(proto){
   return '<span class="badge bg-green"><i class="ti ti-route"></i> VLESS gRPC</span>';
 }
 
+let currentLinkId = '';
+
 function renderLinks(links){
   const el=document.getElementById('links-list');
   if(!links.length){
@@ -814,6 +816,7 @@ function renderLinks(links){
             </div>
           </div>
           <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-g" onclick="openLinkModal('${l.uuid}')"><i class="ti ti-edit"></i> ویرایش</button>
             <button class="btn btn-sm btn-g" onclick="navigator.clipboard.writeText('${esc(l.vless_link)}').then(()=>toast('لینک VLESS کپی شد ✓','ok'))"><i class="ti ti-copy"></i> کپی VLESS</button>
             <button class="btn btn-sm btn-g" onclick="showQR('${esc(l.label)}', '${esc(l.vless_link)}')"><i class="ti ti-qrcode"></i> QR</button>
             <button class="btn btn-sm btn-d" onclick="deleteLink('${l.uuid}')"><i class="ti ti-trash"></i></button>
@@ -827,10 +830,37 @@ function renderLinks(links){
   }).join('');
 }
 
-async function openLinkModal(){
+async function openLinkModal(uid=''){
+  currentLinkId = uid;
+  document.getElementById('link-modal-title').innerHTML = uid ? '<i class="ti ti-edit"></i> ویرایش کانفیگ' : '<i class="ti ti-link"></i> ساخت کانفیگ جدید';
+
   const sr=await fetch('/api/subs'),sd=await sr.json();
   const sel=document.getElementById('nl-sub');
   sel.innerHTML='<option value="">بدون اشتراک (مستقل)</option>'+(sd.subs||[]).map(s=>`<option value="${s.sub_id}">${esc(s.label)}</option>`).join('');
+
+  let targetLink = null;
+  if(uid){
+    const lr=await fetch('/api/links'),ld=await lr.json();
+    targetLink = (ld.links||[]).find(l=>l.uuid===uid);
+  }
+
+  document.getElementById('nl-label').value = targetLink ? targetLink.label : '';
+  document.getElementById('nl-proto').value = targetLink ? targetLink.protocol : 'vless-grpc';
+  document.getElementById('nl-sub').value = targetLink ? (targetLink.sub_id || '') : '';
+  document.getElementById('nl-val').value = targetLink ? (targetLink.limit_bytes / (1024**3)).toFixed(1) : 0;
+  document.getElementById('nl-exp').value = 0;
+  document.getElementById('nl-iplimit').value = targetLink ? targetLink.ip_limit : 0;
+  document.getElementById('nl-note').value = targetLink ? (targetLink.note || '') : '';
+  document.getElementById('nl-clean-ip').value = targetLink ? (targetLink.clean_ip || '') : '';
+  document.getElementById('nl-sni').value = targetLink ? (targetLink.sni || '') : '';
+  document.getElementById('nl-host').value = targetLink ? (targetLink.host || '') : '';
+  document.getElementById('nl-alpn').value = targetLink ? (targetLink.alpn || '') : '';
+  document.getElementById('nl-fg-packets').value = targetLink ? (targetLink.fragment_packets || '') : '';
+  document.getElementById('nl-fg-len').value = targetLink ? (targetLink.fragment_length || '10-20') : '10-20';
+  document.getElementById('nl-fg-interval').value = targetLink ? (targetLink.fragment_interval || '10-20') : '10-20';
+  document.getElementById('nl-mux-enable').checked = targetLink ? !!targetLink.mux_enable : false;
+  document.getElementById('nl-mux-concurrency').value = targetLink ? (targetLink.mux_concurrency || 8) : 8;
+
   openModal('modal-link');
 }
 
@@ -855,14 +885,20 @@ document.getElementById('form-link').addEventListener('submit',async e=>{
     mux_enable: document.getElementById('nl-mux-enable').checked,
     mux_concurrency: parseInt(document.getElementById('nl-mux-concurrency').value)||8,
   };
+
+  const url = currentLinkId ? ('/api/links/' + currentLinkId) : '/api/links';
+  const method = currentLinkId ? 'PATCH' : 'POST';
+
   try{
-    const r=await fetch('/api/links',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(r.ok){
-      toast('کانفیگ جدید ساخته شد ✓','ok');
+      toast(currentLinkId ? 'کانفیگ ویرایش شد ✓' : 'کانفیگ جدید ساخته شد ✓','ok');
       closeModal('modal-link');
       loadLinks();
+    } else {
+      toast('خطا در ذخیره کانفیگ','err');
     }
-  }catch(e){toast('خطا در ساخت کانفیگ','err')}
+  }catch(e){toast('خطا در ارتباط با سرور','err')}
 });
 
 async function deleteLink(uid){

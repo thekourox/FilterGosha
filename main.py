@@ -939,6 +939,8 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             link["fragment_length"] = str(body.get("fragment_length") or "10-20").strip()
         if "fragment_interval" in body:
             link["fragment_interval"] = str(body.get("fragment_interval") or "10-20").strip()
+        if "mux_enable" in body:
+            link["mux_enable"] = bool(body["mux_enable"])
         if "mux_concurrency" in body:
             link["mux_concurrency"] = max(1, int(body.get("mux_concurrency") or 8))
         if "speed_limit_value" in body:
