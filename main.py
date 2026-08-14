@@ -239,7 +239,7 @@ def generate_vless_link(
     mux_enable: bool = False,
     mux_concurrency: int = 8,
 ) -> str:
-    """ساخت لینک‌های VLESS پیشرفته متناسب با پروتکل و پارامترهای پیشرفته (ALPN, Fragment, Mux, SNI, Clean IP)"""
+    """ساخت لینک‌های VLESS استاندارد و پیشرفته مطابق دقیق با تنظیمات انتخابی پنل"""
     port_val = port or DEFAULT_PORT
     if port_val not in ALLOWED_PORTS:
         port_val = DEFAULT_PORT
@@ -251,7 +251,7 @@ def generate_vless_link(
     w_domain = (worker_domain or SETTINGS.get("worker_domain") or "").strip()
     c_ip = (clean_ip or SETTINGS.get("clean_ip") or "").strip()
 
-    # Determine Target Address (Config Clean IP -> Global Clean IP -> Worker Domain -> Host)
+    # Address resolution: Config clean_ip -> Global clean_ip -> Worker Domain -> Host
     if c_ip:
         target_addr = c_ip
     elif w_domain:
@@ -259,7 +259,7 @@ def generate_vless_link(
     else:
         target_addr = host
 
-    # Determine SNI (Config SNI -> Worker Domain -> Host)
+    # SNI resolution: Config sni -> Worker Domain -> Host
     if sni and sni.strip():
         target_sni = sni.strip()
     elif w_domain:
@@ -267,7 +267,7 @@ def generate_vless_link(
     else:
         target_sni = host
 
-    # Determine Host Header (Config Host Header -> Worker Domain -> Host)
+    # Host Header resolution: Config host_header -> Worker Domain -> Host
     if host_header and host_header.strip():
         target_host = host_header.strip()
     elif w_domain:
@@ -275,46 +275,58 @@ def generate_vless_link(
     else:
         target_host = host
 
-    # Determine ALPN
-    target_alpn = alpn if alpn is not None else "h2,http/1.1"
+    # Fingerprint resolution
+    target_fp = (fingerprint or DEFAULT_FINGERPRINT).strip().lower()
 
-    # Base parameters
-    params = {
-        "encryption": "none",
-        "security": "tls",
-        "type": "ws" if proto == "vless-ws" else (proto.replace("vless-", "") if proto != "vless-grpc" else "grpc"),
-        "host": target_host,
-        "sni": target_sni,
-    }
-
-    if proto == "vless-ws":
-        params["path"] = f"/ws/{uuid}"
-    elif proto == "xhttp":
-        params["path"] = f"/xhttp-siz10/{uuid}"
-        params["mode"] = "auto"
+    # ALPN resolution: default http/1.1 for ws/xhttp, h2 for grpc
+    if alpn and alpn.strip():
+        target_alpn = alpn.strip()
     else:
-        params["serviceName"] = service_name
+        target_alpn = "h2" if proto == "vless-grpc" else "http/1.1"
 
-    # Fingerprint
-    if fingerprint:
-        params["fp"] = fingerprint
+    # Transport type
+    if proto == "vless-ws":
+        type_str = "ws"
+    elif proto == "xhttp":
+        type_str = "xhttp"
+    else:
+        type_str = "grpc"
 
-    # ALPN
-    if target_alpn:
-        params["alpn"] = target_alpn
+    # Standard required parameters in exact order matching user specification
+    params = [
+        ("encryption", "none"),
+        ("security", "tls"),
+        ("sni", target_sni),
+        ("fp", target_fp),
+        ("alpn", target_alpn),
+        ("insecure", "0"),
+        ("allowInsecure", "0"),
+        ("type", type_str),
+        ("host", target_host),
+    ]
 
-    # Fragment
-    if fragment_packets and fragment_packets.strip():
-        params["fragment"] = fragment_packets.strip()
-        params["fg-len"] = (fragment_length or "10-20").strip()
-        params["fg-interval"] = (fragment_interval or "10-20").strip()
+    # Path / ServiceName / Mode according to transport protocol
+    if proto == "vless-ws":
+        params.append(("path", f"/ws/{uuid}"))
+    elif proto == "xhttp":
+        params.append(("path", f"/xhttp-siz10/{uuid}"))
+        params.append(("mode", "auto"))
+    else:
+        params.append(("serviceName", service_name))
 
-    # Mux
+    # Optional Fragment parameters (ONLY if fragment_packets is explicitly filled)
+    fg_p = (fragment_packets or "").strip()
+    if fg_p:
+        params.append(("fragment", fg_p))
+        params.append(("fg-len", (fragment_length or "10-20").strip()))
+        params.append(("fg-interval", (fragment_interval or "10-20").strip()))
+
+    # Optional Mux parameters (ONLY if mux_enable is True)
     if mux_enable:
-        params["mux"] = "1"
-        params["mux-concurrency"] = str(mux_concurrency if mux_concurrency > 0 else 8)
+        params.append(("mux", "1"))
+        params.append(("mux-concurrency", str(mux_concurrency if mux_concurrency > 0 else 8)))
 
-    query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
+    query = "&".join(f"{k}={quote(str(v))}" for k, v in params)
     return f"vless://{uuid}@{target_addr}:{port_val}?{query}#{quote(remark)}"
 
 def vless_link_for_link(link: dict, uid: str, host: str) -> str:
@@ -722,7 +734,7 @@ async def make_link(
     note: str = "",
     protocol: str = DEFAULT_PROTOCOL,
     fingerprint: str = DEFAULT_FINGERPRINT,
-    alpn: str = "h2,http/1.1",
+    alpn: str = "",
     port: int = DEFAULT_PORT,
     ip_limit: int = 0,
     speed_limit_bytes: int = 0,
@@ -730,7 +742,7 @@ async def make_link(
     clean_ip: str = "",
     sni: str = "",
     host_header: str = "",
-    fragment_packets: str = "tlshello",
+    fragment_packets: str = "",
     fragment_length: str = "10-20",
     fragment_interval: str = "10-20",
     mux_enable: bool = False,
@@ -756,7 +768,7 @@ async def make_link(
             "is_default": False,
             "protocol": protocol,
             "fingerprint": fingerprint,
-            "alpn": (alpn or "h2,http/1.1").strip()[:100],
+            "alpn": (alpn or "").strip()[:100],
             "port": port,
             "ip_limit": max(0, ip_limit),
             "speed_limit_bytes": max(0, speed_limit_bytes),

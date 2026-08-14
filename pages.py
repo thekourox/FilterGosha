@@ -451,11 +451,11 @@ select.inp{appearance:none;cursor:pointer}
           </div>
           <div class="form-row">
             <div class="form-g"><label>Host Header اختصاصی</label><input class="inp" id="nl-host" placeholder="مثلاً: host.domain.com"></div>
-            <div class="form-g"><label>ALPN</label><input class="inp" id="nl-alpn" value="h2,http/1.1" placeholder="h2,http/1.1"></div>
+            <div class="form-g"><label>ALPN</label><input class="inp" id="nl-alpn" placeholder="پیش‌فرض: http/1.1 یا h2"></div>
           </div>
           <div style="font-weight:700;font-size:11px;color:var(--t2);margin:10px 0 6px"><i class="ti ti-scissors"></i> تنظیمات Fragment (ضد فیلترینگ / Anti-DPI)</div>
           <div class="form-row">
-            <div class="form-g"><label>نوع پکت Fragment</label><input class="inp" id="nl-fg-packets" value="tlshello" placeholder="tlshello یا 1-3"></div>
+            <div class="form-g"><label>نوع پکت Fragment</label><input class="inp" id="nl-fg-packets" placeholder="خالی = غیرفعال (مثلاً: tlshello یا 1-3)"></div>
             <div class="form-g"><label>طول Fragment (Length)</label><input class="inp" id="nl-fg-len" value="10-20" placeholder="10-20"></div>
           </div>
           <div class="form-g"><label>فاصله زمانی Fragment (Interval)</label><input class="inp" id="nl-fg-interval" value="10-20" placeholder="10-20"></div>

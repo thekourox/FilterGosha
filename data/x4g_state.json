@@ -109,6 +109,56 @@
       "fragment_interval": "10-20",
       "mux_enable": true,
       "mux_concurrency": 8
+    },
+    "f10da641-2880-0105-5078-8e7bc609b760": {
+      "label": "1gb",
+      "limit_bytes": 0,
+      "used_bytes": 0,
+      "created_at": "2026-08-14T03:58:47.634534",
+      "active": true,
+      "expires_at": null,
+      "note": "",
+      "is_default": false,
+      "protocol": "vless-ws",
+      "fingerprint": "chrome",
+      "alpn": "h2,http/1.1",
+      "port": 443,
+      "ip_limit": 0,
+      "speed_limit_bytes": 0,
+      "sub_id": null,
+      "clean_ip": "",
+      "sni": "",
+      "host": "",
+      "fragment_packets": "",
+      "fragment_length": "10-20",
+      "fragment_interval": "10-20",
+      "mux_enable": false,
+      "mux_concurrency": 8
+    },
+    "ff4ff8c4-2f9c-1fe7-b547-040f4bac5ff4": {
+      "label": "Fragment-Mux-Link",
+      "limit_bytes": 0,
+      "used_bytes": 0,
+      "created_at": "2026-08-14T03:58:47.636294",
+      "active": true,
+      "expires_at": null,
+      "note": "",
+      "is_default": false,
+      "protocol": "vless-ws",
+      "fingerprint": "chrome",
+      "alpn": "h2,http/1.1",
+      "port": 443,
+      "ip_limit": 0,
+      "speed_limit_bytes": 0,
+      "sub_id": null,
+      "clean_ip": "",
+      "sni": "",
+      "host": "",
+      "fragment_packets": "tlshello",
+      "fragment_length": "10-20",
+      "fragment_interval": "10-20",
+      "mux_enable": true,
+      "mux_concurrency": 8
     }
   },
   "subs": {
@@ -125,9 +175,9 @@
     }
   },
   "settings": {
-    "worker_domain": "worker.mydomain.com",
-    "clean_ip": "104.21.10.15"
+    "worker_domain": "",
+    "clean_ip": ""
   },
   "password_hash": "da4594aaf215467d03f1dd1468f78fb8a2c8a45bbd66a28434ae113707b8a097",
-  "saved_at": "2026-08-13T21:06:56.570026"
+  "saved_at": "2026-08-14T03:58:47.640286"
 }
