@@ -412,21 +412,56 @@ select.inp{appearance:none;cursor:pointer}
 
 <!-- MODAL: LINK -->
 <div class="modal" id="modal-link">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:580px">
     <div class="modal-head">
       <div class="modal-title" id="link-modal-title"><i class="ti ti-link"></i> ساخت کانفیگ جدید</div>
       <button class="close-btn" onclick="closeModal('modal-link')"><i class="ti ti-x"></i></button>
     </div>
     <form id="form-link">
-      <div class="form-g"><label>عنوان کانفیگ</label><input class="inp" id="nl-label" placeholder="مثلاً: VLESS gRPC Direct" required></div>
+      <div class="form-g"><label>عنوان کانفیگ</label><input class="inp" id="nl-label" placeholder="مثلاً: کاربر ۱ - وب‌سوکت" required></div>
+
+      <!-- PROTOCOL SELECTOR CARDS -->
       <div class="form-g">
-        <label>پروتکل / ترابرد</label>
-        <select class="inp" id="nl-proto">
-          <option value="vless-grpc" selected>VLESS · gRPC (پیش‌فرض)</option>
-          <option value="vless-ws">VLESS · WebSocket</option>
-          <option value="xhttp">XHTTP Ultra · Mode: auto</option>
-        </select>
+        <label style="margin-bottom:8px;display:block">پروتکل / ترابرد (Transport)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px" id="proto-cards">
+          <div class="proto-card active" data-proto="vless-ws" onclick="selectProto('vless-ws')">
+            <i class="ti ti-wifi" style="font-size:22px;margin-bottom:4px"></i>
+            <div style="font-weight:800;font-size:12px">WebSocket</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:2px">ALPN: http/1.1</div>
+            <div style="font-size:9px;color:var(--accent2);margin-top:1px">✓ بهترین سازگاری با Worker</div>
+          </div>
+          <div class="proto-card" data-proto="vless-grpc" onclick="selectProto('vless-grpc')">
+            <i class="ti ti-route" style="font-size:22px;margin-bottom:4px"></i>
+            <div style="font-weight:800;font-size:12px">gRPC</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:2px">ALPN: h2 (HTTP/2)</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:1px">Multiplexing داخلی</div>
+          </div>
+          <div class="proto-card" data-proto="xhttp" onclick="selectProto('xhttp')">
+            <i class="ti ti-bolt" style="font-size:22px;margin-bottom:4px"></i>
+            <div style="font-weight:800;font-size:12px">XHTTP</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:2px">ALPN: http/1.1</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:1px">Mode: auto</div>
+          </div>
+        </div>
+        <input type="hidden" id="nl-proto" value="vless-ws">
       </div>
+
+      <!-- PROTOCOL INFO BOX -->
+      <div id="proto-info-box" style="padding:10px 14px;border-radius:10px;font-size:11px;margin-bottom:12px;border:1px solid var(--card-b);background:rgba(0,0,0,0.15)">
+        <div id="proto-info-ws" class="proto-info-item">
+          <b><i class="ti ti-info-circle"></i> WebSocket:</b> بهترین گزینه برای عبور از Cloudflare Worker. ترافیک از طریق HTTP/1.1 Upgrade انتقال می‌یابد.<br>
+          <span style="color:var(--t3)">• ALPN ثابت: <code>http/1.1</code> • Mux: پشتیبانی نمی‌شود • Fragment: قابل فعال‌سازی</span>
+        </div>
+        <div id="proto-info-grpc" class="proto-info-item" style="display:none">
+          <b><i class="ti ti-info-circle"></i> gRPC:</b> از HTTP/2 استفاده می‌کند و Multiplexing داخلی دارد. نیاز به فعال‌سازی gRPC در Cloudflare.<br>
+          <span style="color:var(--t3)">• ALPN ثابت: <code>h2</code> • Mux: داخلی (نیاز به تنظیم ندارد) • Fragment: قابل فعال‌سازی</span>
+        </div>
+        <div id="proto-info-xhttp" class="proto-info-item" style="display:none">
+          <b><i class="ti ti-info-circle"></i> XHTTP:</b> پروتکل پیشرفته با حالت انتقال خودکار (auto mode). سازگار با Worker.<br>
+          <span style="color:var(--t3)">• ALPN ثابت: <code>http/1.1</code> • Mux: پشتیبانی نمی‌شود • Fragment: قابل فعال‌سازی</span>
+        </div>
+      </div>
+
       <div class="form-g"><label>اشتراک والد (اختیاری)</label><select class="inp" id="nl-sub"><option value="">بدون اشتراک (مستقل)</option></select></div>
       <div class="form-row">
         <div class="form-g"><label>حجم (0 = نامحدود)</label><input class="inp" type="number" step="0.1" id="nl-val" value="0"></div>
@@ -437,38 +472,35 @@ select.inp{appearance:none;cursor:pointer}
         <div class="form-g"><label>محدودیت آی‌پی (0 = نامحدود)</label><input class="inp" type="number" id="nl-iplimit" value="0"></div>
       </div>
       <div class="form-g"><label>توضیحات</label><input class="inp" id="nl-note" placeholder="توضیحات اختیاری..."></div>
-      
-      <!-- ADVANCED SETTINGS ACCORDION -->
+
+      <!-- ADVANCED SETTINGS - PROTOCOL AWARE -->
       <div style="margin-top:14px;border-top:1px dashed var(--card-b);padding-top:10px">
-        <button type="button" class="btn btn-sm btn-g" onclick="const box=document.getElementById('adv-settings-box');box.style.display=box.style.display==='none'?'block':'none'" style="width:100%;justify-content:space-between">
-          <span><i class="ti ti-adjustments"></i> تنظیمات پیشرفته (ALPN, Fragment, Mux, SNI, Clean IP)</span>
+        <button type="button" class="btn btn-sm btn-g" onclick="const b=document.getElementById('adv-settings-box');b.style.display=b.style.display==='none'?'block':'none'" style="width:100%;justify-content:space-between">
+          <span><i class="ti ti-adjustments"></i> تنظیمات شبکه و ضد فیلترینگ</span>
           <i class="ti ti-chevron-down"></i>
         </button>
         <div id="adv-settings-box" style="display:none;margin-top:12px;padding:14px;background:rgba(0,0,0,0.25);border:1px solid var(--card-b);border-radius:14px">
+          <div style="font-weight:700;font-size:11px;color:var(--accent2);margin-bottom:8px"><i class="ti ti-network"></i> تنظیمات شبکه (اختصاصی این کانفیگ)</div>
           <div class="form-row">
-            <div class="form-g"><label>آی‌پی تمیز اختصاصی (Clean IP)</label><input class="inp" id="nl-clean-ip" placeholder="مثلاً: 104.21.x.x"></div>
-            <div class="form-g"><label>SNI اختصاصی</label><input class="inp" id="nl-sni" placeholder="مثلاً: sni.domain.com"></div>
+            <div class="form-g"><label>آی‌پی تمیز (Clean IP)</label><input class="inp" id="nl-clean-ip" placeholder="خالی = استفاده از تنظیمات سراسری وورکر"></div>
+            <div class="form-g"><label>SNI اختصاصی</label><input class="inp" id="nl-sni" placeholder="خالی = دامین سرور یا وورکر"></div>
           </div>
-          <div class="form-row">
-            <div class="form-g"><label>Host Header اختصاصی</label><input class="inp" id="nl-host" placeholder="مثلاً: host.domain.com"></div>
-            <div class="form-g"><label>ALPN</label><input class="inp" id="nl-alpn" placeholder="پیش‌فرض: http/1.1 یا h2"></div>
+          <div class="form-row" id="row-host-header">
+            <div class="form-g"><label>Host Header اختصاصی</label><input class="inp" id="nl-host" placeholder="خالی = دامین سرور یا وورکر"></div>
+            <div class="form-g"><label>ALPN <span id="alpn-lock-badge" style="font-size:9px;color:var(--accent2)">(قفل شده توسط پروتکل)</span></label><input class="inp" id="nl-alpn" placeholder="" disabled style="opacity:0.5"></div>
           </div>
-          <div style="font-weight:700;font-size:11px;color:var(--t2);margin:10px 0 6px"><i class="ti ti-scissors"></i> تنظیمات Fragment (ضد فیلترینگ / Anti-DPI)</div>
+
+          <div style="font-weight:700;font-size:11px;color:var(--accent2);margin:12px 0 6px"><i class="ti ti-scissors"></i> تنظیمات Fragment (ضد فیلترینگ / Anti-DPI)</div>
+          <div style="font-size:10px;color:var(--t3);margin-bottom:8px">فعال‌سازی Fragment باعث شکستن بسته‌های TLS Hello و دور زدن فیلترینگ DPI می‌شود.</div>
           <div class="form-row">
-            <div class="form-g"><label>نوع پکت Fragment</label><input class="inp" id="nl-fg-packets" placeholder="خالی = غیرفعال (مثلاً: tlshello یا 1-3)"></div>
+            <div class="form-g"><label>نوع پکت Fragment</label><input class="inp" id="nl-fg-packets" placeholder="خالی = غیرفعال (مثلاً: tlshello)"></div>
             <div class="form-g"><label>طول Fragment (Length)</label><input class="inp" id="nl-fg-len" value="10-20" placeholder="10-20"></div>
           </div>
           <div class="form-g"><label>فاصله زمانی Fragment (Interval)</label><input class="inp" id="nl-fg-interval" value="10-20" placeholder="10-20"></div>
-          <div style="font-weight:700;font-size:11px;color:var(--t2);margin:10px 0 6px"><i class="ti ti-arrows-join-2"></i> تنظیمات Multiplexing (Mux)</div>
-          <div class="form-row" style="align-items:center">
-            <div class="form-g" style="margin-bottom:0">
-              <label class="cfg-chk-item" style="padding:0">
-                <input type="checkbox" id="nl-mux-enable">
-                <span>فعال‌سازی Mux (Multiplexing)</span>
-              </label>
-            </div>
-            <div class="form-g" style="margin-bottom:0"><label>همزمانی Mux (Concurrency)</label><input class="inp" type="number" id="nl-mux-concurrency" value="8"></div>
-          </div>
+
+          <!-- MUX SECTION (hidden - not supported) -->
+          <input type="hidden" id="nl-mux-enable" value="">
+          <input type="hidden" id="nl-mux-concurrency" value="8">
         </div>
       </div>
 
@@ -476,6 +508,17 @@ select.inp{appearance:none;cursor:pointer}
     </form>
   </div>
 </div>
+
+<style>
+.proto-card{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:14px 8px;border-radius:14px;cursor:pointer;transition:all .2s;
+  border:2px solid var(--card-b);background:rgba(0,0,0,0.15);text-align:center;
+  color:var(--t2);
+}
+.proto-card:hover{border-color:var(--accent);background:rgba(0,200,120,0.06)}
+.proto-card.active{border-color:var(--accent);background:rgba(0,200,120,0.12);color:var(--t1);box-shadow:0 0 20px rgba(0,200,120,0.15)}
+</style>
 
 <!-- MODAL: QR CODE -->
 <div class="modal" id="modal-qr" onclick="this.classList.remove('open')">
@@ -830,6 +873,27 @@ function renderLinks(links){
   }).join('');
 }
 
+// Protocol selector with rules enforcement
+function selectProto(proto){
+  document.getElementById('nl-proto').value = proto;
+  document.querySelectorAll('.proto-card').forEach(c=>{
+    c.classList.toggle('active', c.dataset.proto===proto);
+  });
+  // Show/hide protocol info
+  document.querySelectorAll('.proto-info-item').forEach(el=>el.style.display='none');
+  if(proto==='vless-ws') document.getElementById('proto-info-ws').style.display='block';
+  else if(proto==='vless-grpc') document.getElementById('proto-info-grpc').style.display='block';
+  else document.getElementById('proto-info-xhttp').style.display='block';
+  // ALPN is locked per protocol
+  const alpnEl = document.getElementById('nl-alpn');
+  alpnEl.disabled = true;
+  alpnEl.style.opacity = '0.5';
+  if(proto==='vless-grpc'){ alpnEl.value = 'h2'; }
+  else { alpnEl.value = 'http/1.1'; }
+  // Mux is always disabled
+  document.getElementById('nl-mux-enable').value = '';
+}
+
 async function openLinkModal(uid=''){
   currentLinkId = uid;
   document.getElementById('link-modal-title').innerHTML = uid ? '<i class="ti ti-edit"></i> ویرایش کانفیگ' : '<i class="ti ti-link"></i> ساخت کانفیگ جدید';
@@ -845,7 +909,6 @@ async function openLinkModal(uid=''){
   }
 
   document.getElementById('nl-label').value = targetLink ? targetLink.label : '';
-  document.getElementById('nl-proto').value = targetLink ? targetLink.protocol : 'vless-grpc';
   document.getElementById('nl-sub').value = targetLink ? (targetLink.sub_id || '') : '';
   document.getElementById('nl-val').value = targetLink ? (targetLink.limit_bytes / (1024**3)).toFixed(1) : 0;
   document.getElementById('nl-exp').value = 0;
@@ -854,12 +917,16 @@ async function openLinkModal(uid=''){
   document.getElementById('nl-clean-ip').value = targetLink ? (targetLink.clean_ip || '') : '';
   document.getElementById('nl-sni').value = targetLink ? (targetLink.sni || '') : '';
   document.getElementById('nl-host').value = targetLink ? (targetLink.host || '') : '';
-  document.getElementById('nl-alpn').value = targetLink ? (targetLink.alpn || '') : '';
   document.getElementById('nl-fg-packets').value = targetLink ? (targetLink.fragment_packets || '') : '';
   document.getElementById('nl-fg-len').value = targetLink ? (targetLink.fragment_length || '10-20') : '10-20';
   document.getElementById('nl-fg-interval').value = targetLink ? (targetLink.fragment_interval || '10-20') : '10-20';
-  document.getElementById('nl-mux-enable').checked = targetLink ? !!targetLink.mux_enable : false;
-  document.getElementById('nl-mux-concurrency').value = targetLink ? (targetLink.mux_concurrency || 8) : 8;
+  document.getElementById('nl-mux-concurrency').value = 8;
+
+  // Select protocol card
+  selectProto(targetLink ? targetLink.protocol : 'vless-ws');
+
+  // Close adv settings box by default
+  document.getElementById('adv-settings-box').style.display = 'none';
 
   openModal('modal-link');
 }
@@ -882,7 +949,7 @@ document.getElementById('form-link').addEventListener('submit',async e=>{
     fragment_packets: document.getElementById('nl-fg-packets').value.trim(),
     fragment_length: document.getElementById('nl-fg-len').value.trim(),
     fragment_interval: document.getElementById('nl-fg-interval').value.trim(),
-    mux_enable: document.getElementById('nl-mux-enable').checked,
+    mux_enable: false,
     mux_concurrency: parseInt(document.getElementById('nl-mux-concurrency').value)||8,
   };
 
