@@ -487,13 +487,30 @@ select.inp{appearance:none;cursor:pointer}
           </div>
           <div class="form-row" id="row-host-header">
             <div class="form-g"><label>Host Header اختصاصی</label><input class="inp" id="nl-host" placeholder="خالی = دامین سرور یا وورکر"></div>
-            <div class="form-g"><label>ALPN <span id="alpn-lock-badge" style="font-size:9px;color:var(--accent2)">(قفل شده توسط پروتکل)</span></label><input class="inp" id="nl-alpn" placeholder="" disabled style="opacity:0.5"></div>
+            <div class="form-g">
+              <label>انتخاب ALPN</label>
+              <select class="inp" id="nl-alpn">
+                <option value="http/1.1">http/1.1 (پیش‌فرض WebSocket & XHTTP)</option>
+                <option value="h2">h2 (پیش‌فرض gRPC / HTTP/2)</option>
+                <option value="h2,http/1.1">h2,http/1.1 (ترکیبی gRPC)</option>
+                <option value="http/1.1,h2">http/1.1,h2 (ترکیبی HTTP)</option>
+              </select>
+            </div>
           </div>
 
           <div style="font-weight:700;font-size:11px;color:var(--accent2);margin:12px 0 6px"><i class="ti ti-scissors"></i> تنظیمات Fragment (ضد فیلترینگ / Anti-DPI)</div>
           <div style="font-size:10px;color:var(--t3);margin-bottom:8px">فعال‌سازی Fragment باعث شکستن بسته‌های TLS Hello و دور زدن فیلترینگ DPI می‌شود.</div>
           <div class="form-row">
-            <div class="form-g"><label>نوع پکت Fragment</label><input class="inp" id="nl-fg-packets" placeholder="خالی = غیرفعال (مثلاً: tlshello)"></div>
+            <div class="form-g">
+              <label>نوع پکت Fragment</label>
+              <select class="inp" id="nl-fg-packets">
+                <option value="">غیرفعال (بدون Fragment)</option>
+                <option value="tlshello" selected>tlshello (شکستن پکت‌های TLS ClientHello)</option>
+                <option value="1-3">1-3 (شکستن پکت‌های اول تا سوم)</option>
+                <option value="1-5">1-5 (شکستن پکت‌های اول تا پنجم)</option>
+                <option value="tlshello,1-3">tlshello,1-3 (ترکیبی - بیشترین ضد فیلتر)</option>
+              </select>
+            </div>
             <div class="form-g"><label>طول Fragment (Length)</label><input class="inp" id="nl-fg-len" value="10-20" placeholder="10-20"></div>
           </div>
           <div class="form-g"><label>فاصله زمانی Fragment (Interval)</label><input class="inp" id="nl-fg-interval" value="10-20" placeholder="10-20"></div>
@@ -884,14 +901,11 @@ function selectProto(proto){
   if(proto==='vless-ws') document.getElementById('proto-info-ws').style.display='block';
   else if(proto==='vless-grpc') document.getElementById('proto-info-grpc').style.display='block';
   else document.getElementById('proto-info-xhttp').style.display='block';
-  // ALPN is locked per protocol
+
+  // Set default ALPN dropdown selection based on transport protocol
   const alpnEl = document.getElementById('nl-alpn');
-  alpnEl.disabled = true;
-  alpnEl.style.opacity = '0.5';
   if(proto==='vless-grpc'){ alpnEl.value = 'h2'; }
   else { alpnEl.value = 'http/1.1'; }
-  // Mux is always disabled
-  document.getElementById('nl-mux-enable').value = '';
 }
 
 async function openLinkModal(uid=''){
@@ -917,13 +931,18 @@ async function openLinkModal(uid=''){
   document.getElementById('nl-clean-ip').value = targetLink ? (targetLink.clean_ip || '') : '';
   document.getElementById('nl-sni').value = targetLink ? (targetLink.sni || '') : '';
   document.getElementById('nl-host').value = targetLink ? (targetLink.host || '') : '';
-  document.getElementById('nl-fg-packets').value = targetLink ? (targetLink.fragment_packets || '') : '';
+  document.getElementById('nl-fg-packets').value = targetLink ? (targetLink.fragment_packets || '') : 'tlshello';
   document.getElementById('nl-fg-len').value = targetLink ? (targetLink.fragment_length || '10-20') : '10-20';
   document.getElementById('nl-fg-interval').value = targetLink ? (targetLink.fragment_interval || '10-20') : '10-20';
   document.getElementById('nl-mux-concurrency').value = 8;
 
   // Select protocol card
   selectProto(targetLink ? targetLink.protocol : 'vless-ws');
+
+  // Override ALPN if targetLink has custom alpn
+  if(targetLink && targetLink.alpn){
+    document.getElementById('nl-alpn').value = targetLink.alpn;
+  }
 
   // Close adv settings box by default
   document.getElementById('adv-settings-box').style.display = 'none';
