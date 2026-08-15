@@ -26,7 +26,15 @@ IRAN_TZ = ZoneInfo("Asia/Tehran")
 app = FastAPI(title="Kourosh", docs_url=None, redoc_url=None)
 
 # ── Persistence ───────────────────────────────────────────────────────────────
-DATA_DIR = Path(os.environ.get("DATA_DIR", "./data"))
+def resolve_data_dir() -> Path:
+    env_dir = os.environ.get("DATA_DIR") or os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+    if env_dir:
+        return Path(env_dir)
+    if Path("/data").exists() and os.access("/data", os.W_OK):
+        return Path("/data")
+    return Path("./data")
+
+DATA_DIR = resolve_data_dir()
 DATA_FILE = DATA_DIR / "x4g_state.json"
 SECRET_FILE = DATA_DIR / "x4g_secret.key"
 SAVE_LOCK = asyncio.Lock()
@@ -125,7 +133,7 @@ SUBS: dict = {}
 SUBS_LOCK = asyncio.Lock()
 
 # Protocol and configuration standards
-PROTOCOLS = ("vless-grpc", "vless-ws", "xhttp")
+PROTOCOLS = ("vless-grpc", "vless-ws", "xhttp", "custom")
 DEFAULT_PROTOCOL = "vless-grpc"
 
 FINGERPRINTS = ("chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized")
@@ -331,6 +339,11 @@ def generate_vless_link(
 
 def vless_link_for_link(link: dict, uid: str, host: str) -> str:
     proto = link.get("protocol", DEFAULT_PROTOCOL)
+    if proto == "custom":
+        raw = (link.get("custom_uri") or "").strip()
+        if not raw:
+            return f"socks://{uid}@{host}:1080#{quote('Kourosh-' + link.get('label',''))}"
+        return raw.replace("{host}", host).replace("{uuid}", uid)
     return generate_vless_link(
         uuid=uid,
         host=host,
@@ -635,6 +648,12 @@ async def get_stats(_=Depends(require_auth)):
         "expired_links": sum(1 for l in snap_links.values() if is_link_expired(l)),
         "subs_count": len(snap_subs),
         "active_subs": sum(1 for s in snap_subs.values() if s.get("active", True) and not is_sub_expired(s)),
+        "proto_dist": {
+            "vless_ws": sum(1 for l in snap_links.values() if l.get("protocol") == "vless-ws"),
+            "vless_grpc": sum(1 for l in snap_links.values() if l.get("protocol") == "vless-grpc" or not l.get("protocol")),
+            "xhttp": sum(1 for l in snap_links.values() if l.get("protocol") == "xhttp"),
+            "custom": sum(1 for l in snap_links.values() if l.get("protocol") == "custom"),
+        }
     }
 
 # ── Activity Logs ─────────────────────────────────────────────────────────────
@@ -747,6 +766,7 @@ async def make_link(
     fragment_interval: str = "10-20",
     mux_enable: bool = False,
     mux_concurrency: int = 8,
+    custom_uri: str = "",
 ) -> tuple[str, dict]:
     if protocol not in PROTOCOLS:
         protocol = DEFAULT_PROTOCOL
@@ -781,6 +801,7 @@ async def make_link(
             "fragment_interval": (fragment_interval or "10-20").strip(),
             "mux_enable": bool(mux_enable),
             "mux_concurrency": max(1, int(mux_concurrency or 8)),
+            "custom_uri": (custom_uri or "").strip(),
         }
     asyncio.create_task(save_state())
     log_activity("link", f"کانفیگ «{LINKS[uid]['label']}» ساخته شد", "ok")
@@ -848,6 +869,7 @@ async def create_link(request: Request, _=Depends(require_auth)):
         fragment_interval=body.get("fragment_interval") or "10-20",
         mux_enable=bool(body.get("mux_enable", False)),
         mux_concurrency=int(body.get("mux_concurrency") or 8),
+        custom_uri=body.get("custom_uri") or "",
     )
 
     host = get_host(request)
@@ -943,6 +965,8 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             link["mux_enable"] = bool(body["mux_enable"])
         if "mux_concurrency" in body:
             link["mux_concurrency"] = max(1, int(body.get("mux_concurrency") or 8))
+        if "custom_uri" in body:
+            link["custom_uri"] = str(body.get("custom_uri") or "").strip()
         if "speed_limit_value" in body:
             sv = float(body.get("speed_limit_value") or 0)
             su = body.get("speed_limit_unit") or "MBIT"

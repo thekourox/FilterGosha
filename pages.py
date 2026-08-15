@@ -257,28 +257,58 @@ select.inp{appearance:none;cursor:pointer}
 <!-- PAGE 1: OVERVIEW -->
 <section class="pg on" id="pg-overview">
   <div class="topbar">
-    <div><div class="tb-title"><i class="ti ti-layout-dashboard"></i> داشبورد اصلی</div><div class="tb-sub" id="last-upd">در حال بارگذاری...</div></div>
+    <div><div class="tb-title"><i class="ti ti-layout-grid"></i> داشبورد</div><div class="tb-sub" id="last-upd">آخرین بروزرسانی: --:--:--</div></div>
     <div class="tb-right">
-      <span class="badge bg-green"><span class="dot dg pulse"></span> سرویس فعال</span>
-      <span class="badge bg-blue" id="uptime-badge">—</span>
       <button class="btn btn-g btn-sm" onclick="fetchStats()"><i class="ti ti-refresh"></i> رفرش</button>
+      <span class="badge bg-blue" id="uptime-badge">Railway - 00:00:00</span>
+      <span class="badge bg-green"><span class="dot dg pulse"></span> فعال</span>
     </div>
   </div>
-  <div class="metrics">
-    <div class="metric"><div class="m-icon"><i class="ti ti-plug-connected"></i></div><div class="m-label">اتصالات زنده</div><div class="m-val" id="m-conns">—</div><div class="m-sub"><span class="dot dg pulse"></span> آنلاین</div></div>
-    <div class="metric"><div class="m-icon"><i class="ti ti-transfer"></i></div><div class="m-label">کل ترافیک</div><div class="m-val" id="m-traffic">—</div><div class="m-sub">از زمان راه‌اندازی</div></div>
-    <div class="metric"><div class="m-icon"><i class="ti ti-users-group"></i></div><div class="m-label">اشتراک‌های فعال</div><div class="m-val" id="m-subs">—</div><div class="m-sub" id="m-ssub">از کل</div></div>
-    <div class="metric"><div class="m-icon"><i class="ti ti-link"></i></div><div class="m-label">کانفیگ‌های فعال</div><div class="m-val" id="m-alinks">—</div><div class="m-sub" id="m-lsub">از کل</div></div>
+
+  <div class="metrics" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
+    <div class="metric"><div class="m-icon" style="background:rgba(239,68,68,0.12);color:#EF4444"><i class="ti ti-alert-triangle"></i></div><div class="m-label">خطاها</div><div class="m-val" id="m-errors" style="color:#EF4444">0</div><div class="m-sub">از راه‌اندازی</div></div>
+    <div class="metric"><div class="m-icon" style="background:rgba(16,185,129,0.12);color:#34D399"><i class="ti ti-link"></i></div><div class="m-label">کانفیگ فعال</div><div class="m-val" id="m-alinks">0</div><div class="m-sub" id="m-lsub">از 0 کانفیگ</div></div>
+    <div class="metric"><div class="m-icon" style="background:rgba(59,130,246,0.12);color:#60A5FA"><i class="ti ti-bolt"></i></div><div class="m-label">کل ترافیک</div><div class="m-val" id="m-traffic">0.0 MB</div><div class="m-sub">از راه‌اندازی</div></div>
+    <div class="metric"><div class="m-icon" style="background:rgba(16,185,129,0.12);color:var(--accent)"><i class="ti ti-plug-connected"></i></div><div class="m-label">اتصالات فعال</div><div class="m-val" id="m-conns">0</div><div class="m-sub"><span class="dot dg pulse"></span> WebSocket / XHTTP زنده</div></div>
   </div>
-  <div class="g3">
-    <div class="card"><div class="card-title"><i class="ti ti-chart-area"></i> مصرف ساعتی ترافیک (MB)</div><div class="ch"><canvas id="ch1"></canvas></div></div>
+
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:16px">
+    <div class="card" style="display:flex;flex-direction:column;justify-content:space-between">
+      <div class="card-title"><i class="ti ti-chart-donut"></i> توزیع</div>
+      <div style="height:200px;position:relative;display:flex;align-items:center;justify-content:center">
+        <canvas id="ch-donut"></canvas>
+      </div>
+    </div>
     <div class="card">
-      <div class="card-title"><i class="ti ti-activity"></i> وضعیت پروتکل‌ها</div>
-      <div class="sr"><span class="sr-k"><i class="ti ti-route"></i> VLESS gRPC</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
-      <div class="sr"><span class="sr-k"><i class="ti ti-wifi"></i> VLESS WebSocket</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
-      <div class="sr"><span class="sr-k"><i class="ti ti-bolt"></i> XHTTP Ultra (Auto)</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
-      <div class="sr"><span class="sr-k"><i class="ti ti-clock"></i> آپتایم</span><span class="sr-v" id="uptime-inline">—</span></div>
+      <div class="card-title"><i class="ti ti-chart-area-line"></i> ترافیک ساعتی (MB)</div>
+      <div style="height:200px"><canvas id="ch1"></canvas></div>
     </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-list-details"></i> خلاصه کانفیگ‌ها</div>
+      <div id="dash-links-summary" style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        در حال بارگذاری...
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-activity"></i> وضعیت سرویس</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
+        <div class="sr"><span class="sr-k"><i class="ti ti-shield-check"></i> UUID Auth</span><span class="sr-v" style="color:var(--green-t)">● فعال - سخت‌گیرانه</span></div>
+        <div class="sr"><span class="sr-k"><i class="ti ti-wifi"></i> VLESS / WS Tunnel</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
+        <div class="sr"><span class="sr-k"><i class="ti ti-bolt"></i> Siz10a XHTTP Ultra</span><span class="sr-v" style="color:var(--green-t)">mode: auto · ● فعال</span></div>
+        <div class="sr"><span class="sr-k"><i class="ti ti-rss"></i> Subscription API</span><span class="sr-v" style="color:var(--green-t)">● فعال</span></div>
+        <div class="sr"><span class="sr-k"><i class="ti ti-clock"></i> آپتایم</span><span class="sr-v" id="uptime-inline" style="color:var(--t1)">—</span></div>
+        <div class="sr"><span class="sr-k"><i class="ti ti-cpu"></i> بار نسبی</span><span class="sr-v" style="color:var(--green-t)">0%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD FOOTER -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-top:20px;border-top:1px solid var(--card-b);font-size:11px;color:var(--t3)">
+    <div><a href="https://t.me/X4GHUB" target="_blank" style="color:var(--accent2);text-decoration:none"><i class="ti ti-brand-telegram"></i> t.me/X4GHUB</a></div>
+    <div>X4G v9.8 · Railway</div>
   </div>
 </section>
 
@@ -372,7 +402,18 @@ select.inp{appearance:none;cursor:pointer}
     <div style="font-size:11px;color:var(--t2);margin-bottom:10px">
       این کد را کپی کرده و در پنل کلادفلر (بخش Workers & Pages -> Create Worker) قرار داده و Deploy کنید.
     </div>
-    <textarea id="worker-code-box" readonly style="width:100%;height:220px;background:rgba(0,0,0,0.4);border:1px solid var(--card-b);color:var(--accent);font-family:ui-monospace,monospace;font-size:11px;padding:12px;border-radius:10px;outline:none;resize:vertical"></textarea>
+    <textarea id="worker-code-box" readonly style="width:100%;height:180px;background:rgba(0,0,0,0.4);border:1px solid var(--card-b);color:var(--accent);font-family:ui-monospace,monospace;font-size:11px;padding:12px;border-radius:10px;outline:none;resize:vertical"></textarea>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span><i class="ti ti-brand-cloudflare"></i> اسکریپت Cloudflare Pages Function (جایگزین pages.dev)</span>
+      <button class="btn btn-sm btn-g" onclick="copyPagesScript()"><i class="ti ti-copy"></i> کپی کد Pages</button>
+    </div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px">
+      در صورتی که دامنه <code>workers.dev</code> فیلتر یا مسدود است، یک پروسه Cloudflare Pages بسازید و این کد را در مسیر <code>functions/[[path]].js</code> قرار دهید تا دامنه <code>your-app.pages.dev</code> فعال شود.
+    </div>
+    <textarea id="pages-code-box" readonly style="width:100%;height:180px;background:rgba(0,0,0,0.4);border:1px solid var(--card-b);color:var(--accent);font-family:ui-monospace,monospace;font-size:11px;padding:12px;border-radius:10px;outline:none;resize:vertical"></textarea>
   </div>
 </section>
 
@@ -440,24 +481,30 @@ select.inp{appearance:none;cursor:pointer}
       <!-- PROTOCOL SELECTOR CARDS -->
       <div class="form-g">
         <label style="margin-bottom:8px;display:block">پروتکل / ترابرد (Transport)</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px" id="proto-cards">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px" id="proto-cards">
           <div class="proto-card active" data-proto="vless-ws" onclick="selectProto('vless-ws')">
-            <i class="ti ti-wifi" style="font-size:22px;margin-bottom:4px"></i>
-            <div style="font-weight:800;font-size:12px">WebSocket</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:2px">ALPN: http/1.1</div>
-            <div style="font-size:9px;color:var(--accent2);margin-top:1px">✓ بهترین سازگاری با Worker</div>
+            <i class="ti ti-wifi" style="font-size:20px;margin-bottom:2px"></i>
+            <div style="font-weight:800;font-size:11px">WebSocket</div>
+            <div style="font-size:8.5px;color:var(--t3);margin-top:1px">ALPN: http/1.1</div>
+            <div style="font-size:8.5px;color:var(--accent2);margin-top:1px">✓ Worker</div>
           </div>
           <div class="proto-card" data-proto="vless-grpc" onclick="selectProto('vless-grpc')">
-            <i class="ti ti-route" style="font-size:22px;margin-bottom:4px"></i>
-            <div style="font-weight:800;font-size:12px">gRPC</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:2px">ALPN: h2 (HTTP/2)</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:1px">Multiplexing داخلی</div>
+            <i class="ti ti-route" style="font-size:20px;margin-bottom:2px"></i>
+            <div style="font-weight:800;font-size:11px">gRPC</div>
+            <div style="font-size:8.5px;color:var(--t3);margin-top:1px">ALPN: h2</div>
+            <div style="font-size:8.5px;color:var(--t3);margin-top:1px">Multiplexing</div>
           </div>
           <div class="proto-card" data-proto="xhttp" onclick="selectProto('xhttp')">
-            <i class="ti ti-bolt" style="font-size:22px;margin-bottom:4px"></i>
-            <div style="font-weight:800;font-size:12px">XHTTP</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:2px">ALPN: http/1.1</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:1px">Mode: auto</div>
+            <i class="ti ti-bolt" style="font-size:20px;margin-bottom:2px"></i>
+            <div style="font-weight:800;font-size:11px">XHTTP</div>
+            <div style="font-size:8.5px;color:var(--t3);margin-top:1px">ALPN: http/1.1</div>
+            <div style="font-size:8.5px;color:var(--t3);margin-top:1px">Mode: auto</div>
+          </div>
+          <div class="proto-card" data-proto="custom" onclick="selectProto('custom')">
+            <i class="ti ti-code" style="font-size:20px;margin-bottom:2px"></i>
+            <div style="font-weight:800;font-size:11px">کاستوم</div>
+            <div style="font-size:8.5px;color:var(--t3);margin-top:1px">SOCKS/Custom</div>
+            <div style="font-size:8.5px;color:var(--accent2);margin-top:1px">خارجی / پروکسی</div>
           </div>
         </div>
         <input type="hidden" id="nl-proto" value="vless-ws">
@@ -477,6 +524,17 @@ select.inp{appearance:none;cursor:pointer}
           <b><i class="ti ti-info-circle"></i> XHTTP:</b> پروتکل پیشرفته با حالت انتقال خودکار (auto mode). سازگار با Worker.<br>
           <span style="color:var(--t3)">• ALPN ثابت: <code>http/1.1</code> • Mux: پشتیبانی نمی‌شود • Fragment: قابل فعال‌سازی</span>
         </div>
+        <div id="proto-info-custom" class="proto-info-item" style="display:none">
+          <b><i class="ti ti-info-circle"></i> کاستوم / SOCKS5 / پروکسی خارجی:</b> امکان تعریف مستقیم لینک‌های کاستوم (مانند <code>socks://...</code> یا <code>vless://...</code>) جهت اتصال به پروژه‌ها یا سرورهای خارجی و افزودن آن‌ها به اشتراک‌ها.<br>
+          <span style="color:var(--t3)">• پشتیبانی از متغيرهای <code>{host}</code> و <code>{uuid}</code></span>
+        </div>
+      </div>
+
+      <!-- CUSTOM URI FIELD (Visible when custom protocol selected) -->
+      <div class="form-g" id="row-custom-uri" style="display:none">
+        <label>لینک کاستوم / URI اختصاصی</label>
+        <input class="inp" id="nl-custom-uri" placeholder="مثلاً: socks://user:pass@{host}:1080#MyCustomProxy">
+        <div style="font-size:10px;color:var(--t3);margin-top:4px">لینک کاملی که کلاینت دریافت خواهد کرد. امکان استفاده از <code>{host}</code> وجود دارد.</div>
       </div>
 
       <div class="form-g"><label>اشتراک والد (اختیاری)</label><select class="inp" id="nl-sub"><option value="">بدون اشتراک (مستقل)</option></select></div>
@@ -606,54 +664,145 @@ document.getElementById('logout-btn').addEventListener('click',async()=>{
 });
 
 const WORKER_SCRIPT_TEMPLATE = `/**
- * Cloudflare Worker Reverse Proxy for X4G Panel (VLESS + WebSocket + TLS)
+ * X4G Panel - Cloudflare Worker Reverse Proxy (Anti-DPI / WebSocket Bypass)
+ * 
+ * Instructions:
+ * 1. Go to Cloudflare Dashboard -> Workers & Pages -> Create Worker.
+ * 2. Paste this code into the editor.
+ * 3. Replace 'RAILWAY_BACKEND' with your actual Railway domain (e.g., 'kouroshnet.vazirigoldgallery.ir').
+ * 4. Save and Deploy.
+ * 5. Add Custom Domain (e.g., 'gold.vazirigoldgallery.ir') under Worker Settings -> Triggers.
  */
-const DEFAULT_BACKEND_HOST = "x4g-backend.up.railway.app";
+
+const RAILWAY_BACKEND = "kouroshnet.vazirigoldgallery.ir";
 
 export default {
   async fetch(request, env, ctx) {
     try {
-      const backendHost = env.BACKEND_HOST || DEFAULT_BACKEND_HOST;
       const url = new URL(request.url);
-      url.hostname = backendHost;
+      
+      // Rewrite destination hostname to Railway server
+      url.hostname = RAILWAY_BACKEND;
       url.protocol = "https:";
+      url.port = "443";
 
-      const headers = new Headers(request.headers);
-      headers.set("Host", backendHost);
-      headers.set("X-Forwarded-Host", request.headers.get("Host") || url.hostname);
-      headers.set("X-Forwarded-Proto", "https");
+      // Duplicate headers and set appropriate Host and X-Forwarded headers
+      const newHeaders = new Headers(request.headers);
+      newHeaders.set("Host", RAILWAY_BACKEND);
+      newHeaders.set("X-Forwarded-Host", request.headers.get("Host") || url.hostname);
+      newHeaders.set("X-Forwarded-Proto", "https");
 
       const clientIp = request.headers.get("CF-Connecting-IP");
       if (clientIp) {
-        headers.set("X-Real-IP", clientIp);
+        newHeaders.set("X-Real-IP", clientIp);
         const existingFwd = request.headers.get("X-Forwarded-For");
-        headers.set("X-Forwarded-For", existingFwd ? \`\${existingFwd}, \${clientIp}\` : clientIp);
+        newHeaders.set("X-Forwarded-For", existingFwd ? \`\${existingFwd}, \${clientIp}\` : clientIp);
       }
 
-      const fetchInit = {
+      // Check if WebSocket upgrade request
+      const isWebSocket = request.headers.get("Upgrade")?.toLowerCase() === "websocket";
+
+      if (isWebSocket) {
+        return fetch(url.toString(), {
+          method: request.method,
+          headers: newHeaders,
+          body: request.body,
+          redirect: "manual"
+        });
+      }
+
+      // Standard HTTP fetch
+      const response = await fetch(url.toString(), {
         method: request.method,
-        headers: headers,
-        redirect: "manual",
-      };
+        headers: newHeaders,
+        body: request.method !== "GET" && request.method !== "HEAD" ? request.body : null,
+        redirect: "manual"
+      });
 
-      if (request.method !== "GET" && request.method !== "HEAD") {
-        fetchInit.body = request.body;
-      }
-
-      const response = await fetch(url.toString(), fetchInit);
+      // Wrap response headers for CORS compatibility
       const responseHeaders = new Headers(response.headers);
       responseHeaders.set("Access-Control-Allow-Origin", "*");
 
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
-        headers: responseHeaders,
+        headers: responseHeaders
       });
     } catch (err) {
-      return new Response(\`Cloudflare Worker Proxy Error: \${err.message}\`, { status: 502 });
+      return new Response(\`X4G Worker Proxy Error: \${err.message}\`, { status: 502 });
     }
-  },
+  }
 };`;
+
+const PAGES_SCRIPT_TEMPLATE = `/**
+ * X4G Panel - Cloudflare Pages Function Reverse Proxy (pages.dev Anti-DPI / WebSocket Bypass)
+ * File: functions/[[path]].js
+ * 
+ * Instructions:
+ * 1. Go to Cloudflare Dashboard -> Workers & Pages -> Create -> Pages -> Upload Assets.
+ * 2. Upload a folder containing a 'functions' directory with this [[path]].js file inside it.
+ * 3. Replace 'RAILWAY_BACKEND' with your actual Railway domain (e.g., 'kouroshnet.vazirigoldgallery.ir').
+ * 4. Your project will be deployed at 'your-project.pages.dev'.
+ */
+
+const RAILWAY_BACKEND = "kouroshnet.vazirigoldgallery.ir";
+
+export async function onRequest(context) {
+  const { request } = context;
+  try {
+    const url = new URL(request.url);
+    
+    // Rewrite destination hostname to Railway server
+    url.hostname = RAILWAY_BACKEND;
+    url.protocol = "https:";
+    url.port = "443";
+
+    // Duplicate headers and set appropriate Host and X-Forwarded headers
+    const newHeaders = new Headers(request.headers);
+    newHeaders.set("Host", RAILWAY_BACKEND);
+    newHeaders.set("X-Forwarded-Host", request.headers.get("Host") || url.hostname);
+    newHeaders.set("X-Forwarded-Proto", "https");
+
+    const clientIp = request.headers.get("CF-Connecting-IP");
+    if (clientIp) {
+      newHeaders.set("X-Real-IP", clientIp);
+      const existingFwd = request.headers.get("X-Forwarded-For");
+      newHeaders.set("X-Forwarded-For", existingFwd ? \`\${existingFwd}, \${clientIp}\` : clientIp);
+    }
+
+    // Check if WebSocket upgrade request
+    const isWebSocket = request.headers.get("Upgrade")?.toLowerCase() === "websocket";
+
+    if (isWebSocket) {
+      return fetch(url.toString(), {
+        method: request.method,
+        headers: newHeaders,
+        body: request.body,
+        redirect: "manual"
+      });
+    }
+
+    // Standard HTTP fetch
+    const response = await fetch(url.toString(), {
+      method: request.method,
+      headers: newHeaders,
+      body: request.method !== "GET" && request.method !== "HEAD" ? request.body : null,
+      redirect: "manual"
+    });
+
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders
+    });
+  } catch (err) {
+    return new Response(\`X4G Pages Proxy Error: \${err.message}\`, { status: 502 });
+  }
+}
+`;
 
 async function loadSettings(){
   try{
@@ -661,6 +810,7 @@ async function loadSettings(){
     document.getElementById('st-worker-domain').value = d.worker_domain||'';
     document.getElementById('st-clean-ip').value = d.clean_ip||'';
     document.getElementById('worker-code-box').value = WORKER_SCRIPT_TEMPLATE;
+    document.getElementById('pages-code-box').value = PAGES_SCRIPT_TEMPLATE;
   }catch(e){toast('خطا در دریافت تنظیمات','err')}
 }
 
@@ -718,20 +868,24 @@ function copyWorkerScript(){
   navigator.clipboard.writeText(code).then(()=>toast('کد Cloudflare Worker کپی شد ✓','ok'));
 }
 
+function copyPagesScript(){
+  const code = document.getElementById('pages-code-box').value;
+  navigator.clipboard.writeText(code).then(()=>toast('کد Cloudflare Pages Function کپی شد ✓','ok'));
+}
+
 // STATS & DASHBOARD OVERVIEW
-let ch1;
+let ch1, chDonut;
 async function fetchStats(){
   try{
     const r=await fetch('/stats'),d=await r.json();
-    document.getElementById('m-conns').textContent=d.active_connections;
-    document.getElementById('m-traffic').textContent=d.total_traffic_mb.toFixed(1)+' MB';
-    document.getElementById('m-subs').textContent=d.active_subs??0;
-    document.getElementById('m-ssub').textContent='از '+d.subs_count+' اشتراک';
+    document.getElementById('m-conns').textContent=d.active_connections||0;
+    document.getElementById('m-traffic').textContent=(d.total_traffic_mb||0).toFixed(1)+' MB';
     document.getElementById('m-alinks').textContent=d.active_links??0;
-    document.getElementById('m-lsub').textContent='از '+d.links_count+' کانفیگ';
-    document.getElementById('uptime-inline').textContent=d.uptime;
-    document.getElementById('uptime-badge').textContent=d.uptime;
-    document.getElementById('last-upd').textContent='بروزرسانی: '+new Date().toLocaleTimeString('fa-IR');
+    document.getElementById('m-lsub').textContent='از '+(d.links_count||0)+' کانفیگ';
+    document.getElementById('m-errors').textContent=d.total_errors||0;
+    document.getElementById('uptime-inline').textContent=d.uptime||'--:--:--';
+    document.getElementById('uptime-badge').textContent='Railway - '+(d.uptime||'00:00:00');
+    document.getElementById('last-upd').textContent='آخرین بروزرسانی: '+new Date().toLocaleTimeString('fa-IR');
     document.getElementById('subs-nb').textContent=d.subs_count||0;
     document.getElementById('links-nb').textContent=d.links_count||0;
     document.getElementById('conns-nb').textContent=d.active_connections||0;
@@ -740,15 +894,78 @@ async function fetchStats(){
       const labels=Object.keys(d.hourly).sort(),vals=labels.map(k=>+(d.hourly[k]/1024**2).toFixed(2));
       if(ch1){ch1.data.labels=labels;ch1.data.datasets[0].data=vals;ch1.update()}
     }
+
+    if(d.proto_dist && chDonut){
+      const pd = d.proto_dist;
+      const ws = pd.vless_ws || 0;
+      const xh = pd.xhttp || 0;
+      const gr = (pd.vless_grpc || 0) + (pd.custom || 0);
+      chDonut.data.datasets[0].data = [ws || 1, xh || 1, gr || 1];
+      chDonut.update();
+    }
+
+    loadDashLinksSummary();
   }catch(e){console.error(e)}
+}
+
+async function loadDashLinksSummary(){
+  try{
+    const r=await fetch('/api/links'),d=await r.json();
+    const el=document.getElementById('dash-links-summary');
+    if(!el) return;
+    if(!d.links||!d.links.length){
+      el.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:10px">هیچ کانفیگی ثبت نشده است</div>';
+      return;
+    }
+    el.innerHTML = d.links.slice(0, 5).map(l=>{
+      const lim = l.limit_bytes === 0 ? '∞' : fmtB(l.limit_bytes);
+      const used = fmtB(l.used_bytes);
+      const stColor = l.active ? 'var(--green-t)' : 'var(--red-t)';
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(0,0,0,0.2);border:1px solid var(--card-b);border-radius:10px;font-size:11.5px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:${stColor}">●</span>
+            <strong>${esc(l.label)}</strong>
+          </div>
+          <div style="font-size:11px;color:var(--t2)">
+            <span style="color:var(--t1)">${used}</span> / <span style="color:var(--t3)">${lim}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }catch(e){}
 }
 
 function initChart(){
   const ctx=document.getElementById('ch1').getContext('2d');
   ch1=new Chart(ctx,{
     type:'line',
-    data:{labels:[],datasets:[{label:'ترافیک (MB)',data:[],borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.1)',fill:true,tension:.4}]},
+    data:{labels:[],datasets:[{label:'ترافیک (MB)',data:[],borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.12)',fill:true,tension:.4}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}
+  });
+
+  const ctx2=document.getElementById('ch-donut').getContext('2d');
+  chDonut=new Chart(ctx2,{
+    type:'doughnut',
+    data:{
+      labels:['VLESS/WS', 'XHTTP Ultra', 'HTTP / gRPC'],
+      datasets:[{
+        data:[1, 1, 1],
+        backgroundColor:['#10b981', '#3B82F6', '#9D7BF0'],
+        borderWidth: 0
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{color:'#8AA0C4', font:{family:'Vazirmatn', size:10}}
+        }
+      },
+      cutout:'70%'
+    }
   });
 }
 
@@ -900,6 +1117,7 @@ async function loadLinks(){
 function protoChipText(proto){
   if(proto==='vless-ws') return '<span class="badge bg-blue"><i class="ti ti-wifi"></i> VLESS WS</span>';
   if(proto==='xhttp') return '<span class="badge bg-green" style="background:var(--purple-bg);color:var(--purple-t)"><i class="ti ti-bolt"></i> XHTTP Auto</span>';
+  if(proto==='custom') return '<span class="badge bg-amber" style="background:rgba(242,163,61,0.12);color:#F9C988"><i class="ti ti-code"></i> کاستوم / SOCKS</span>';
   return '<span class="badge bg-green"><i class="ti ti-route"></i> VLESS gRPC</span>';
 }
 
@@ -947,7 +1165,12 @@ function selectProto(proto){
   document.querySelectorAll('.proto-info-item').forEach(el=>el.style.display='none');
   if(proto==='vless-ws') document.getElementById('proto-info-ws').style.display='block';
   else if(proto==='vless-grpc') document.getElementById('proto-info-grpc').style.display='block';
-  else document.getElementById('proto-info-xhttp').style.display='block';
+  else if(proto==='xhttp') document.getElementById('proto-info-xhttp').style.display='block';
+  else document.getElementById('proto-info-custom').style.display='block';
+
+  // Toggle custom URI field
+  const rowCustom = document.getElementById('row-custom-uri');
+  if(rowCustom) rowCustom.style.display = (proto === 'custom') ? 'block' : 'none';
 
   // Set default ALPN dropdown selection based on transport protocol
   const alpnEl = document.getElementById('nl-alpn');
@@ -982,6 +1205,7 @@ async function openLinkModal(uid=''){
   document.getElementById('nl-fg-len').value = targetLink ? (targetLink.fragment_length || '10-20') : '10-20';
   document.getElementById('nl-fg-interval').value = targetLink ? (targetLink.fragment_interval || '10-20') : '10-20';
   document.getElementById('nl-mux-concurrency').value = 8;
+  document.getElementById('nl-custom-uri').value = targetLink ? (targetLink.custom_uri || '') : '';
 
   // Select protocol card
   selectProto(targetLink ? targetLink.protocol : 'vless-ws');
@@ -1001,7 +1225,7 @@ document.getElementById('form-link').addEventListener('submit',async e=>{
   e.preventDefault();
   const payload={
     label: document.getElementById('nl-label').value.trim(),
-    protocol: document.getElementById('nl-proto').value||'vless-grpc',
+    protocol: document.getElementById('nl-proto').value||'vless-ws',
     sub_id: document.getElementById('nl-sub').value||null,
     limit_value: parseFloat(document.getElementById('nl-val').value)||0,
     limit_unit: document.getElementById('nl-unit').value,
@@ -1017,6 +1241,7 @@ document.getElementById('form-link').addEventListener('submit',async e=>{
     fragment_interval: document.getElementById('nl-fg-interval').value.trim(),
     mux_enable: false,
     mux_concurrency: parseInt(document.getElementById('nl-mux-concurrency').value)||8,
+    custom_uri: document.getElementById('nl-custom-uri').value.trim(),
   };
 
   const url = currentLinkId ? ('/api/links/' + currentLinkId) : '/api/links';
