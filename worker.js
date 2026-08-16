@@ -32,7 +32,7 @@ export default {
         newHeaders.set("X-Real-IP", clientIp);
         newHeaders.set("CF-Connecting-IP", clientIp);
         const existingFwd = request.headers.get("X-Forwarded-For");
-        newHeaders.set("X-Forwarded-For", existingFwd ? `${existingFwd}, ${clientIp}` : clientIp);
+        newHeaders.set("X-Forwarded-For", clientIp + (existingFwd ? `, ${existingFwd}` : ""));
       }
 
       // Check if WebSocket upgrade request

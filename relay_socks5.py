@@ -8,16 +8,12 @@ from speed_limit import throttle
 RELAY_BUF = 256 * 1024  # 256 KB
 
 def _ws_client_ip(ws: WebSocket) -> str:
-    fwd = ws.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    real_ip = ws.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip()
-    return ws.client.host if ws.client else "نامشخص"
+    from main import extract_client_ip
+    host = ws.client.host if ws.client else None
+    return extract_client_ip(ws.headers, host)
 
 async def check_and_use(uid: str, n: int) -> bool:
-    from main import LINKS, LINKS_LOCK, stats, hourly_traffic, is_link_allowed, now_ir
+    from main import LINKS, LINKS_LOCK, SUBS, stats, hourly_traffic, is_link_allowed, now_ir
     async with LINKS_LOCK:
         link = LINKS.get(uid)
         if link is None:
@@ -25,6 +21,11 @@ async def check_and_use(uid: str, n: int) -> bool:
         if not is_link_allowed(link):
             return False
         link["used_bytes"] += n
+        sub_id = link.get("sub_id")
+        if sub_id:
+            sub = SUBS.get(sub_id)
+            if sub:
+                sub["used_bytes"] += n
         stats["total_bytes"] += n
         hourly_traffic[now_ir().strftime("%H:00")] += n
     return True

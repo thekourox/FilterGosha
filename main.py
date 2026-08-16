@@ -73,7 +73,7 @@ app.add_middleware(
 SETTINGS = {
     "worker_domain": os.environ.get("WORKER_DOMAIN", "").strip(),
     "clean_ip": os.environ.get("CLEAN_IP", "").strip(),
-    "remark_prefix": os.environ.get("REMARK_PREFIX", "Kourosh").strip() or "Kourosh",
+    "remark_prefix": os.environ.get("REMARK_PREFIX", "Kourosh").strip(),
 }
 
 async def load_state():
@@ -340,7 +340,7 @@ def generate_vless_link(
 
 def vless_link_for_link(link: dict, uid: str, host: str) -> str:
     proto = link.get("protocol", DEFAULT_PROTOCOL)
-    prefix = (SETTINGS.get("remark_prefix") or "Kourosh").strip()
+    prefix = (SETTINGS.get("remark_prefix") if SETTINGS.get("remark_prefix") is not None else "Kourosh").strip()
     label = link.get("label", "")
     full_remark = f"{prefix}-{label}" if prefix else label
     if proto == "custom":
@@ -447,10 +447,17 @@ def is_link_allowed(link: dict | None) -> bool:
         if is_sub_expired(sub):
             return False
         slb = sub.get("limit_bytes", 0)
-        if slb > 0 and sub.get("used_bytes", 0) >= slb:
+        if slb > 0 and get_sub_used_bytes(sub_id, sub) >= slb:
             return False
             
     return True
+
+def get_sub_used_bytes(sub_id: str, sub: dict | None = None) -> int:
+    if sub is None:
+        sub = SUBS.get(sub_id)
+    s_used = sub.get("used_bytes", 0) if sub else 0
+    links_used = sum(l.get("used_bytes", 0) for l in LINKS.values() if l.get("sub_id") == sub_id)
+    return max(s_used, links_used)
 
 def fmt_bytes(b: int) -> str:
     if b < 1024: return f"{b} B"
@@ -458,16 +465,97 @@ def fmt_bytes(b: int) -> str:
     if b < 1024**3: return f"{b/1024**2:.2f} MB"
     return f"{b/1024**3:.2f} GB"
 
+import ipaddress
+
+CLOUDFLARE_IP_NETWORKS = [
+    ipaddress.ip_network("173.245.48.0/20"),
+    ipaddress.ip_network("103.21.244.0/22"),
+    ipaddress.ip_network("103.22.200.0/22"),
+    ipaddress.ip_network("103.31.4.0/22"),
+    ipaddress.ip_network("141.101.64.0/18"),
+    ipaddress.ip_network("108.162.192.0/18"),
+    ipaddress.ip_network("190.93.240.0/20"),
+    ipaddress.ip_network("188.114.96.0/20"),
+    ipaddress.ip_network("197.234.240.0/22"),
+    ipaddress.ip_network("198.41.128.0/17"),
+    ipaddress.ip_network("162.158.0.0/15"),
+    ipaddress.ip_network("104.16.0.0/13"),
+    ipaddress.ip_network("104.24.0.0/14"),
+    ipaddress.ip_network("172.64.0.0/13"),
+    ipaddress.ip_network("131.0.72.0/22"),
+    ipaddress.ip_network("2400:cb00::/32"),
+    ipaddress.ip_network("2606:4700::/32"),
+    ipaddress.ip_network("2803:f800::/32"),
+    ipaddress.ip_network("2405:b500::/32"),
+    ipaddress.ip_network("2405:8100::/32"),
+    ipaddress.ip_network("2a06:98c0::/29"),
+    ipaddress.ip_network("2c0f:f248::/32"),
+]
+
+def sanitize_ip(ip_str: str | None) -> str:
+    if not ip_str:
+        return ""
+    clean = str(ip_str).strip()
+    if clean.startswith("[") and "]" in clean:
+        clean = clean[1:clean.index("]")]
+    elif ":" in clean and clean.count(":") == 1:
+        clean = clean.split(":")[0]
+    try:
+        ipaddress.ip_address(clean)
+        return clean
+    except ValueError:
+        return ""
+
+def is_cloudflare_ip(ip_str: str) -> bool:
+    clean = sanitize_ip(ip_str)
+    if not clean:
+        return False
+    try:
+        ip_obj = ipaddress.ip_address(clean)
+        return any(ip_obj in net for net in CLOUDFLARE_IP_NETWORKS)
+    except ValueError:
+        return False
+
+def extract_client_ip(headers: dict | None, socket_host: str | None = None) -> str:
+    """استخراج دقیق و واقعی آی‌پی کلاینت با فیلتر کردن IPهای لبه کلادفلر"""
+    candidates = []
+    if headers:
+        for k in ("cf-connecting-ip", "true-client-ip", "x-real-ip"):
+            val = headers.get(k) or headers.get(k.title()) or headers.get(k.upper())
+            if val:
+                candidates.append(val)
+        fwd = headers.get("x-forwarded-for") or headers.get("X-Forwarded-For") or headers.get("X-FORWARDED-FOR")
+        if fwd:
+            for part in fwd.split(","):
+                candidates.append(part.strip())
+    if socket_host:
+        candidates.append(socket_host)
+
+    valid_any = []
+    for item in candidates:
+        clean = sanitize_ip(item)
+        if not clean:
+            continue
+        valid_any.append(clean)
+        if not is_cloudflare_ip(clean):
+            return clean
+
+    if valid_any:
+        return "Cloudflare-CDN"
+    return "نامشخص"
+
 def unique_ips_for_uuid(uuid: str) -> set:
-    return {c.get("ip") for c in list(connections.values()) if c.get("uuid") == uuid and c.get("ip")}
+    return {c.get("ip") for c in list(connections.values()) if c.get("uuid") == uuid and c.get("ip") and c.get("ip") != "نامشخص"}
 
 def unique_ips_for_sub(sub_id: str) -> set:
     sub_links = {uid for uid, l in LINKS.items() if l.get("sub_id") == sub_id}
-    return {c.get("ip") for c in list(connections.values()) if c.get("uuid") in sub_links and c.get("ip")}
+    return {c.get("ip") for c in list(connections.values()) if c.get("uuid") in sub_links and c.get("ip") and c.get("ip") != "نامشخص"}
 
 def is_ip_allowed(link: dict | None, uuid: str, ip: str) -> bool:
     if link is None:
         return False
+    if not ip or ip == "نامشخص":
+        return True
         
     sub_id = link.get("sub_id")
     if sub_id and sub_id in SUBS:
@@ -486,16 +574,8 @@ def is_ip_allowed(link: dict | None, uuid: str, ip: str) -> bool:
     return True
 
 def client_ip(request: Request) -> str:
-    cf_ip = request.headers.get("cf-connecting-ip")
-    if cf_ip and cf_ip.strip():
-        return cf_ip.strip()
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip and real_ip.strip():
-        return real_ip.strip()
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "نامشخص"
+    host = request.client.host if request.client else None
+    return extract_client_ip(request.headers, host)
 
 # ── Basic endpoints ───────────────────────────────────────────────────────────
 @app.get("/")
@@ -535,7 +615,7 @@ async def subscription_single(uuid: str, request: Request):
         }
         
         upload = 0
-        download = sub.get("used_bytes", 0)
+        download = get_sub_used_bytes(uuid, sub)
         total = sub.get("limit_bytes", 0)
         
         expire_str = ""
@@ -621,7 +701,7 @@ async def get_settings(_=Depends(require_auth)):
     return {
         "worker_domain": SETTINGS.get("worker_domain", ""),
         "clean_ip": SETTINGS.get("clean_ip", ""),
-        "remark_prefix": SETTINGS.get("remark_prefix", "Kourosh"),
+        "remark_prefix": SETTINGS.get("remark_prefix") if SETTINGS.get("remark_prefix") is not None else "Kourosh",
     }
 
 @app.post("/api/settings")
@@ -632,7 +712,7 @@ async def update_settings(request: Request, _=Depends(require_auth)):
     if "clean_ip" in body:
         SETTINGS["clean_ip"] = str(body["clean_ip"]).strip()
     if "remark_prefix" in body:
-        SETTINGS["remark_prefix"] = str(body["remark_prefix"]).strip() or "Kourosh"
+        SETTINGS["remark_prefix"] = str(body["remark_prefix"]).strip()
     await save_state()
     log_activity("settings", "تنظیمات عمومی پنل بروزرسانی شد", "ok")
     return {"ok": True, "settings": dict(SETTINGS)}
@@ -1054,13 +1134,15 @@ async def list_subs(request: Request, _=Depends(require_auth)):
         sub_links = [uid for uid, l in link_snap.items() if l.get("sub_id") == sid]
         sub_conn_count = sum(1 for c in connections.values() if c.get("uuid") in sub_links)
         
+        sub_used = get_sub_used_bytes(sid, s)
         result.append({
             "sub_id": sid,
             **s,
+            "used_bytes": sub_used,
             "expired": is_sub_expired(s),
             "links_count": len(sub_links),
             "connections": sub_conn_count,
-            "used_fmt": fmt_bytes(s.get("used_bytes", 0)),
+            "used_fmt": fmt_bytes(sub_used),
             "limit_fmt": "∞" if s.get("limit_bytes", 0) == 0 else fmt_bytes(s["limit_bytes"]),
             "sub_url": f"https://{host}/p/{sid}",
             "raw_sub_url": f"https://{host}/sub/{sid}",
@@ -1197,8 +1279,8 @@ async def public_sub_data(uuid_key: str, request: Request):
         async with LINKS_LOCK:
             sub_links = {uid: l for uid, l in LINKS.items() if l.get("sub_id") == uuid_key}
             
-        links_out = []
-        total_used = sub.get("used_bytes", 0)
+        links_sum = sum(l.get("used_bytes", 0) for l in sub_links.values())
+        total_used = get_sub_used_bytes(uuid_key, sub)
         active_conns = 0
         
         for uid, l in sub_links.items():
@@ -1230,6 +1312,7 @@ async def public_sub_data(uuid_key: str, request: Request):
             "sub_url": f"https://{host}/p/{uuid_key}",
             "raw_sub_url": f"https://{host}/sub/{uuid_key}",
             "active_connections": active_conns,
+            "used_bytes": total_used,
             "total_used_fmt": fmt_bytes(total_used),
             "limit_bytes": sub.get("limit_bytes", 0),
             "limit_fmt": "∞" if sub.get("limit_bytes", 0) == 0 else fmt_bytes(sub["limit_bytes"]),

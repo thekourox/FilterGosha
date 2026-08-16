@@ -812,7 +812,7 @@ export async function onRequest(context) {
 async function loadSettings(){
   try{
     const r=await fetch('/api/settings'),d=await r.json();
-    document.getElementById('st-remark-prefix').value = d.remark_prefix||'Kourosh';
+    document.getElementById('st-remark-prefix').value = d.remark_prefix !== undefined ? d.remark_prefix : 'Kourosh';
     document.getElementById('st-worker-domain').value = d.worker_domain||'';
     document.getElementById('st-clean-ip').value = d.clean_ip||'';
     document.getElementById('worker-code-box').value = WORKER_SCRIPT_TEMPLATE;
@@ -1517,9 +1517,10 @@ function renderContent(d){{
     <div style="font-size:12px;font-weight:800;color:var(--t2);margin-bottom:13px;display:flex;align-items:center;gap:6px"><i class="ti ti-link" style="color:var(--accent)"></i> کانفیگ‌های VLESS</div>
     <div>
       ${{d.links.map((l, i) => {{
-        const pct = l.limit_bytes === 0 ? 0 : Math.min(100, l.used_bytes / l.limit_bytes * 100);
+        const effectiveLimit = l.limit_bytes || d.limit_bytes || 0;
+        const pct = effectiveLimit === 0 ? 0 : Math.min(100, (l.used_bytes / effectiveLimit) * 100);
         const bc  = pct > 90 ? 'var(--red)' : pct > 70 ? 'var(--amber)' : 'var(--green)';
-        const lim = l.limit_bytes === 0 ? '∞' : fmtB(l.limit_bytes);
+        const lim = l.limit_bytes === 0 ? (d.limit_bytes > 0 ? fmtB(d.limit_bytes) + ' (از ساب)' : '∞') : fmtB(l.limit_bytes);
         return `
           <div class="cfg-card">
             <div class="cfg-top">

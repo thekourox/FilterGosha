@@ -30,8 +30,9 @@
   "subs": {},
   "settings": {
     "worker_domain": "",
-    "clean_ip": ""
+    "clean_ip": "",
+    "remark_prefix": "FG"
   },
   "password_hash": "da4594aaf215467d03f1dd1468f78fb8a2c8a45bbd66a28434ae113707b8a097",
-  "saved_at": "2026-08-15T14:36:30.478475"
+  "saved_at": "2026-08-16T18:02:09.010796"
 }

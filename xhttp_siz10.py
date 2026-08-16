@@ -160,16 +160,9 @@ class _AdaptiveFlow:
 
 
 def _req_client_ip(request: Request) -> str:
-    cf_ip = request.headers.get("cf-connecting-ip")
-    if cf_ip and cf_ip.strip():
-        return cf_ip.strip()
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip and real_ip.strip():
-        return real_ip.strip()
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "نامشخص"
+    from main import extract_client_ip
+    host = request.client.host if request.client else None
+    return extract_client_ip(request.headers, host)
 
 
 async def _open_tcp_from_header(first_chunk: bytes):

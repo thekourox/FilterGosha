@@ -15,16 +15,9 @@ from speed_limit import throttle
 RELAY_BUF = 256 * 1024   # 256 KB buffer
 
 def _ws_client_ip(ws: WebSocket) -> str:
-    cf_ip = ws.headers.get("cf-connecting-ip")
-    if cf_ip and cf_ip.strip():
-        return cf_ip.strip()
-    real_ip = ws.headers.get("x-real-ip")
-    if real_ip and real_ip.strip():
-        return real_ip.strip()
-    fwd = ws.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return ws.client.host if ws.client else "نامشخص"
+    from main import extract_client_ip
+    host = ws.client.host if ws.client else None
+    return extract_client_ip(ws.headers, host)
 
 async def parse_vless_header(chunk: bytes):
     if len(chunk) < 24:
