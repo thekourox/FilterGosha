@@ -305,7 +305,7 @@ async def _handle_message(msg: dict):
 
     if text in ("/start", "/menu"):
         _pending.pop(chat_id, None)
-        await _send(chat_id, "👋 به ربات مدیریت X4G خوش اومدی.\nاز دکمه‌های زیر برای مدیریت کانفیگ‌ها استفاده کن:", _main_menu_kb())
+        await _send(chat_id, "👋 به ربات مدیریت FilterGosha خوش اومدی.\nاز دکمه‌های زیر برای مدیریت کانفیگ‌ها استفاده کن:", _main_menu_kb())
         return
 
     if text == "/cancel":
@@ -406,7 +406,7 @@ async def _handle_callback(cb: dict):
 
     if data == "menu":
         _pending.pop(chat_id, None)
-        await _edit(chat_id, message_id, "منوی مدیریت X4G:", _main_menu_kb())
+        await _edit(chat_id, message_id, "منوی مدیریت FilterGosha:", _main_menu_kb())
         return
 
     if data.startswith("list:"):
@@ -542,11 +542,9 @@ async def _handle_callback(cb: dict):
         host = get_host()
         vless = vless_link_for_link(l, uid, host)
         sub_url = f"https://{host}/sub/{uid}"
-        public_url = f"https://{host}/p/{uid}"
         msg = (
-            f"🔗 لینک اتصال «{l.get('label')}»:\n\n<code>{vless}</code>\n\n"
-            f"لینک ساب ساده (فقط متن کانفیگ):\n<code>{sub_url}</code>\n\n"
-            f"✨ لینک ساب حرفه‌ای (صفحه‌ی زیبا):\n<code>{public_url}</code>"
+            f"🔗 لینک VLESS مستقیم «{l.get('label')}»:\n\n<code>{vless}</code>\n\n"
+            f"🌐 لینک اشتراک (وب + کلاینت):\n<code>{sub_url}</code>"
         )
         await _send(chat_id, msg)
         return

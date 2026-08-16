@@ -19,11 +19,11 @@ import httpx
 import logging
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("Kourosh")
+logger = logging.getLogger("FilterGosha")
 
 IRAN_TZ = ZoneInfo("Asia/Tehran")
 
-app = FastAPI(title="Kourosh", docs_url=None, redoc_url=None)
+app = FastAPI(title="FilterGosha", docs_url=None, redoc_url=None)
 
 # ── Persistence ───────────────────────────────────────────────────────────────
 def resolve_data_dir() -> Path:
@@ -73,7 +73,7 @@ app.add_middleware(
 SETTINGS = {
     "worker_domain": os.environ.get("WORKER_DOMAIN", "").strip(),
     "clean_ip": os.environ.get("CLEAN_IP", "").strip(),
-    "remark_prefix": os.environ.get("REMARK_PREFIX", "Kourosh").strip(),
+    "remark_prefix": os.environ.get("REMARK_PREFIX", "FilterGosha").strip(),
 }
 
 async def load_state():
@@ -160,7 +160,7 @@ SESSION_TTL = 60 * 60 * 24 * 365
 def hash_password(pw: str) -> str:
     return hashlib.sha256(f"{pw}{CONFIG['secret']}".encode()).hexdigest()
 
-AUTH = {"password_hash": hash_password(os.environ.get("ADMIN_PASSWORD", "KouroshKING"))}
+AUTH = {"password_hash": hash_password(os.environ.get("ADMIN_PASSWORD", "FilterGoshaKING"))}
 SESSIONS: dict = {}
 SESSIONS_LOCK = asyncio.Lock()
 
@@ -205,7 +205,7 @@ async def startup():
     )
     await load_state()
     log_activity("system", "سرور راه‌اندازی شد", "ok")
-    logger.info(f"Kourosh Panel v9.8 started on port {CONFIG['port']}")
+    logger.info(f"FilterGosha Panel v9.8 started on port {CONFIG['port']}")
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -233,7 +233,7 @@ def now_ir() -> datetime:
 def generate_vless_link(
     uuid: str,
     host: str,
-    remark: str = "Kourosh",
+    remark: str = "FilterGosha",
     protocol: str = DEFAULT_PROTOCOL,
     fingerprint: str | None = None,
     alpn: str | None = None,
@@ -340,7 +340,7 @@ def generate_vless_link(
 
 def vless_link_for_link(link: dict, uid: str, host: str) -> str:
     proto = link.get("protocol", DEFAULT_PROTOCOL)
-    prefix = (SETTINGS.get("remark_prefix") if SETTINGS.get("remark_prefix") is not None else "Kourosh").strip()
+    prefix = (SETTINGS.get("remark_prefix") if SETTINGS.get("remark_prefix") is not None else "FilterGosha").strip()
     label = link.get("label", "")
     full_remark = f"{prefix}-{label}" if prefix else label
     if proto == "custom":
@@ -580,15 +580,55 @@ def client_ip(request: Request) -> str:
 # ── Basic endpoints ───────────────────────────────────────────────────────────
 @app.get("/")
 async def root():
-    return {"service": "Kourosh", "version": "9.8", "status": "active", "channel": "https://t.me/kouroxlog"}
+    return {"service": "FilterGosha", "version": "9.8", "status": "active", "channel": "https://t.me/FilterGosha"}
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "connections": len(connections), "uptime": uptime()}
 
 # ── Subscription (Public Feed for V2ray / Sing-Box / Xray Clients) ───────────
+def is_browser_request(request: Request) -> bool:
+    params = request.query_params
+    if params.get("format") == "raw" or params.get("raw") == "1":
+        return False
+    if params.get("format") == "html" or params.get("html") == "1":
+        return True
+
+    user_agent = request.headers.get("user-agent", "").lower()
+    accept = request.headers.get("accept", "").lower()
+
+    client_keywords = [
+        "v2ray", "shadowrocket", "sing-box", "singbox", "hiddify", "clash", 
+        "nekobox", "nekoray", "streisand", "stash", "quantumult", "surge", 
+        "passwall", "foxray", "mahsang", "matsuri", "v2box", "fairguard", 
+        "sagernet", "xray", "v2rayng", "v2rayn", "curl", "wget", "go-http-client",
+        "python", "axios", "okhttp", "libcurl", "httpclient", "goproxy"
+    ]
+    for kw in client_keywords:
+        if kw in user_agent:
+            return False
+
+    if "text/html" in accept:
+        browser_keywords = ["mozilla", "chrome", "safari", "firefox", "edge", "opera", "applewebkit"]
+        if any(bw in user_agent for bw in browser_keywords):
+            return True
+
+    return False
+
+# ── Subscription (Unified Endpoint for Web Details & V2ray / Sing-Box / Xray Clients) ───
 @app.get("/sub/{uuid}")
 async def subscription_single(uuid: str, request: Request):
+    if is_browser_request(request):
+        from pages import get_public_page_html
+        async with SUBS_LOCK:
+            sub_exists = uuid in SUBS
+        async with LINKS_LOCK:
+            link_exists = uuid in LINKS
+            
+        if not sub_exists and not link_exists:
+            return HTMLResponse("<h2 style='font-family:sans-serif;padding:40px;color:#EF4444'>اشتراک یا کانفیگ پیدا نشد</h2>", status_code=404)
+        return HTMLResponse(content=get_public_page_html(uuid))
+
     import base64
     host = get_host(request)
     
@@ -610,8 +650,8 @@ async def subscription_single(uuid: str, request: Request):
         content = base64.b64encode("\n".join(sub_links).encode()).decode()
         
         headers = {
-            "profile-title": quote(sub.get("label", "Kourosh Sub")),
-            "support-url": "https://t.me/kouroxlog"
+            "profile-title": quote(sub.get("label", "FilterGosha Sub")),
+            "support-url": "https://t.me/FilterGosha"
         }
         
         upload = 0
@@ -639,7 +679,8 @@ async def subscription_single(uuid: str, request: Request):
     vless = vless_link_for_link(link, uuid, host)
     content = base64.b64encode(vless.encode()).decode()
     return Response(content=content, media_type="text/plain",
-                    headers={"profile-title": quote(link["label"]), "support-url": "https://t.me/kouroxlog"})
+                    headers={"profile-title": quote(link["label"]), "support-url": "https://t.me/FilterGosha"})
+
 
 @app.get("/sub-all")
 async def subscription_all(request: Request, _=Depends(require_auth)):
@@ -701,7 +742,7 @@ async def get_settings(_=Depends(require_auth)):
     return {
         "worker_domain": SETTINGS.get("worker_domain", ""),
         "clean_ip": SETTINGS.get("clean_ip", ""),
-        "remark_prefix": SETTINGS.get("remark_prefix") if SETTINGS.get("remark_prefix") is not None else "Kourosh",
+        "remark_prefix": SETTINGS.get("remark_prefix") if SETTINGS.get("remark_prefix") is not None else "FilterGosha",
     }
 
 @app.post("/api/settings")
@@ -968,7 +1009,7 @@ async def create_link(request: Request, _=Depends(require_auth)):
         **link,
         "expired": False,
         "vless_link": vless_link_for_link(link, uid, host),
-        "sub_url": f"https://{host}/p/{uid}",
+        "sub_url": f"https://{host}/sub/{uid}",
         "raw_sub_url": f"https://{host}/sub/{uid}",
     }
 
@@ -986,7 +1027,7 @@ async def list_links(request: Request, _=Depends(require_auth)):
             "protocol": proto,
             "expired": is_link_expired(d),
             "vless_link": vless_link_for_link(d, uid, host),
-            "sub_url": f"https://{host}/p/{uid}",
+            "sub_url": f"https://{host}/sub/{uid}",
             "raw_sub_url": f"https://{host}/sub/{uid}",
             "connected_ips": len(unique_ips_for_uuid(uid)),
             "sub_id": d.get("sub_id"),
@@ -1144,7 +1185,7 @@ async def list_subs(request: Request, _=Depends(require_auth)):
             "connections": sub_conn_count,
             "used_fmt": fmt_bytes(sub_used),
             "limit_fmt": "∞" if s.get("limit_bytes", 0) == 0 else fmt_bytes(s["limit_bytes"]),
-            "sub_url": f"https://{host}/p/{sid}",
+            "sub_url": f"https://{host}/sub/{sid}",
             "raw_sub_url": f"https://{host}/sub/{sid}",
             "links": sub_links,
         })
@@ -1282,6 +1323,7 @@ async def public_sub_data(uuid_key: str, request: Request):
         links_sum = sum(l.get("used_bytes", 0) for l in sub_links.values())
         total_used = get_sub_used_bytes(uuid_key, sub)
         active_conns = 0
+        links_out = []
         
         for uid, l in sub_links.items():
             allowed = is_link_allowed(l)
@@ -1299,7 +1341,7 @@ async def public_sub_data(uuid_key: str, request: Request):
                 "limit_fmt": "∞" if l.get("limit_bytes", 0) == 0 else fmt_bytes(l["limit_bytes"]),
                 "expires_at": l.get("expires_at"),
                 "vless_link": vless_link_for_link(l, uid, host),
-                "sub_url": f"https://{host}/p/{uid}",
+                "sub_url": f"https://{host}/sub/{uid}",
                 "connections": c_count,
                 "ip_limit": l.get("ip_limit", 0),
                 "speed_limit_bytes": l.get("speed_limit_bytes", 0),
@@ -1309,7 +1351,7 @@ async def public_sub_data(uuid_key: str, request: Request):
             "locked": False,
             "name": sub["label"],
             "desc": sub.get("note", ""),
-            "sub_url": f"https://{host}/p/{uuid_key}",
+            "sub_url": f"https://{host}/sub/{uuid_key}",
             "raw_sub_url": f"https://{host}/sub/{uuid_key}",
             "active_connections": active_conns,
             "used_bytes": total_used,
@@ -1340,7 +1382,7 @@ async def public_sub_data(uuid_key: str, request: Request):
         "limit_fmt": "∞" if link.get("limit_bytes", 0) == 0 else fmt_bytes(link["limit_bytes"]),
         "expires_at": link.get("expires_at"),
         "vless_link": vless_link_for_link(link, uuid_key, host),
-        "sub_url": f"https://{host}/p/{uuid_key}",
+        "sub_url": f"https://{host}/sub/{uuid_key}",
         "raw_sub_url": f"https://{host}/sub/{uuid_key}",
         "connections": conn_count,
         "ip_limit": link.get("ip_limit", 0),
@@ -1351,7 +1393,7 @@ async def public_sub_data(uuid_key: str, request: Request):
         "locked": False,
         "name": link["label"],
         "desc": link.get("note", ""),
-        "sub_url": f"https://{host}/p/{uuid_key}",
+        "sub_url": f"https://{host}/sub/{uuid_key}",
         "raw_sub_url": f"https://{host}/sub/{uuid_key}",
         "active_connections": conn_count,
         "total_used_fmt": fmt_bytes(link.get("used_bytes", 0)),

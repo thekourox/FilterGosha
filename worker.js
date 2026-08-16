@@ -1,5 +1,5 @@
 /**
- * X4G Panel - Cloudflare Worker Reverse Proxy (Anti-DPI / WebSocket Bypass)
+ * FilterGosha Panel - Cloudflare Worker Reverse Proxy (Anti-DPI / WebSocket Bypass)
  * 
  * Instructions:
  * 1. Go to Cloudflare Dashboard -> Workers & Pages -> Create Worker.
@@ -65,7 +65,7 @@ export default {
         headers: responseHeaders
       });
     } catch (err) {
-      return new Response(`X4G Worker Proxy Error: ${err.message}`, { status: 502 });
+      return new Response(`FilterGosha Worker Proxy Error: ${err.message}`, { status: 502 });
     }
   }
 };

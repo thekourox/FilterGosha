@@ -6,7 +6,7 @@ LOGIN_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ورود · توسط Kourosh</title>
+<title>ورود · FilterGosha</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -60,7 +60,7 @@ input:focus+.ic{color:var(--accent)}
   <div class="card">
     <div class="brand">
       <div class="brand-img"></div>
-      <div><div class="brand-name"><a href="https://t.me/kouroxlog" target="_blank">توسط Kourosh</a></div><div class="brand-sub">v9.8</div></div>
+      <div><div class="brand-name"><a href="https://t.me/FilterGosha" target="_blank">FilterGosha</a></div><div class="brand-sub">v9.8</div></div>
     </div>
     <h1>ورود به پنل مدیریت</h1>
     <p class="sub">رمز عبور را برای دسترسی به داشبورد وارد کنید</p>
@@ -75,7 +75,7 @@ input:focus+.ic{color:var(--accent)}
       </div>
       <button class="btn" type="submit" id="btn"><i class="ti ti-login-2"></i> ورود به داشبورد</button>
     </form>
-    <div class="footer">پشتیبانی <a href="https://t.me/kouroxlog" target="_blank"><i class="ti ti-brand-telegram"></i>@kouroxlog</a></div>
+    <div class="footer">پشتیبانی <a href="https://t.me/FilterGosha" target="_blank"><i class="ti ti-brand-telegram"></i>@FilterGosha</a></div>
   </div>
 </div>
 <script>
@@ -101,7 +101,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>توسط Kourosh - مدیریت VLESS</title>
+<title>FilterGosha - مدیریت VLESS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -226,7 +226,7 @@ select.inp{appearance:none;cursor:pointer}
 </head>
 <body>
 <div class="mob-top">
-  <div class="mob-logo"><i class="ti ti-shield-check" style="color:var(--accent)"></i> <a href="https://t.me/kouroxlog" target="_blank" style="color:inherit;text-decoration:none;">توسط Kourosh</a></div>
+  <div class="mob-logo"><i class="ti ti-shield-check" style="color:var(--accent)"></i> <a href="https://t.me/FilterGosha" target="_blank" style="color:inherit;text-decoration:none;">FilterGosha</a></div>
   <button class="menu-btn" id="open-sb"><i class="ti ti-menu-2"></i></button>
 </div>
 <div class="overlay" id="overlay"></div>
@@ -234,7 +234,7 @@ select.inp{appearance:none;cursor:pointer}
   <button class="menu-btn" id="close-sb" style="position:absolute;left:10px;top:14px"><i class="ti ti-x"></i></button>
   <div class="logo">
     <div class="logo-img"></div>
-    <div><div class="logo-name"><a href="https://t.me/kouroxlog" target="_blank">توسط Kourosh</a></div><div class="logo-sub">v9.8 · gRPC / WS / XHTTP</div></div>
+    <div><div class="logo-name"><a href="https://t.me/FilterGosha" target="_blank">FilterGosha</a></div><div class="logo-sub">v9.8 · gRPC / WS / XHTTP</div></div>
   </div>
   <div class="nav-wrap">
     <div class="nav-sec">پنل</div>
@@ -307,8 +307,8 @@ select.inp{appearance:none;cursor:pointer}
 
   <!-- DASHBOARD FOOTER -->
   <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-top:20px;border-top:1px solid var(--card-b);font-size:11px;color:var(--t3)">
-    <div><a href="https://t.me/X4GHUB" target="_blank" style="color:var(--accent2);text-decoration:none"><i class="ti ti-brand-telegram"></i> t.me/X4GHUB</a></div>
-    <div>X4G v9.8 · Railway</div>
+    <div><a href="https://t.me/FilterGosha" target="_blank" style="color:var(--accent2);text-decoration:none"><i class="ti ti-brand-telegram"></i> t.me/FilterGosha</a></div>
+    <div>FilterGosha v9.8 · Railway</div>
   </div>
 </section>
 
@@ -361,12 +361,12 @@ select.inp{appearance:none;cursor:pointer}
     <form id="form-settings">
       <div class="form-g">
         <label>پیشوند نام کانفیگ (Remark Prefix)</label>
-        <input class="inp" id="st-remark-prefix" placeholder="مثلاً: Kourosh یا MyBrand (پیش‌فرض: Kourosh)">
-        <div style="font-size:10.5px;color:var(--t3);margin-top:4px">عبارتی که ابتدای ریمارک تمام لینک‌های VLESS قرار می‌گیرد (مثلاً: Kourosh-VLESS-1).</div>
+        <input class="inp" id="st-remark-prefix" placeholder="مثلاً: FilterGosha یا MyBrand (پیش‌فرض: FilterGosha)">
+        <div style="font-size:10.5px;color:var(--t3);margin-top:4px">عبارتی که ابتدای ریمارک تمام لینک‌های VLESS قرار می‌گیرد (مثلاً: FilterGosha-VLESS-1).</div>
       </div>
       <div class="form-g">
         <label>دامنه وورکر کلادفلر (WORKER_DOMAIN)</label>
-        <input class="inp" id="st-worker-domain" placeholder="مثلاً: worker.mydomain.com یا x4g-proxy.sub.workers.dev">
+        <input class="inp" id="st-worker-domain" placeholder="مثلاً: worker.mydomain.com یا filtergosha-proxy.sub.workers.dev">
         <div style="font-size:10.5px;color:var(--t3);margin-top:4px">دامنه اختصاصی یا زیردامنه وورکر کلادفلر که کلاینت‌ها به آن متصل می‌شوند.</div>
       </div>
       <div class="form-g">
@@ -669,7 +669,7 @@ document.getElementById('logout-btn').addEventListener('click',async()=>{
 });
 
 const WORKER_SCRIPT_TEMPLATE = `/**
- * X4G Panel - Cloudflare Worker Reverse Proxy (Anti-DPI / WebSocket Bypass)
+ * FilterGosha Panel - Cloudflare Worker Reverse Proxy (Anti-DPI / WebSocket Bypass)
  * 
  * Instructions:
  * 1. Go to Cloudflare Dashboard -> Workers & Pages -> Create Worker.
@@ -734,13 +734,13 @@ export default {
         headers: responseHeaders
       });
     } catch (err) {
-      return new Response(\`X4G Worker Proxy Error: \${err.message}\`, { status: 502 });
+      return new Response(\`FilterGosha Worker Proxy Error: \${err.message}\`, { status: 502 });
     }
   }
 };`;
 
 const PAGES_SCRIPT_TEMPLATE = `/**
- * X4G Panel - Cloudflare Pages Function Reverse Proxy (pages.dev Anti-DPI / WebSocket Bypass)
+ * FilterGosha Panel - Cloudflare Pages Function Reverse Proxy (pages.dev Anti-DPI / WebSocket Bypass)
  * File: functions/[[path]].js
  * 
  * Instructions:
@@ -804,7 +804,7 @@ export async function onRequest(context) {
       headers: responseHeaders
     });
   } catch (err) {
-    return new Response(\`X4G Pages Proxy Error: \${err.message}\`, { status: 502 });
+    return new Response(\`FilterGosha Pages Proxy Error: \${err.message}\`, { status: 502 });
   }
 }
 `;
@@ -812,7 +812,7 @@ export async function onRequest(context) {
 async function loadSettings(){
   try{
     const r=await fetch('/api/settings'),d=await r.json();
-    document.getElementById('st-remark-prefix').value = d.remark_prefix !== undefined ? d.remark_prefix : 'Kourosh';
+    document.getElementById('st-remark-prefix').value = d.remark_prefix !== undefined ? d.remark_prefix : 'FilterGosha';
     document.getElementById('st-worker-domain').value = d.worker_domain||'';
     document.getElementById('st-clean-ip').value = d.clean_ip||'';
     document.getElementById('worker-code-box').value = WORKER_SCRIPT_TEMPLATE;
@@ -1019,18 +1019,13 @@ function renderSubs(subs){
         </div>
         <div class="sub-links-box">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <span style="font-weight:700;color:var(--t1)"><i class="ti ti-world"></i> صفحه وب اختصاصی کاربر:</span>
-            <button class="btn btn-sm btn-p" onclick="navigator.clipboard.writeText('${esc(s.sub_url)}').then(()=>toast('لینک صفحه وب کپی شد ✓','ok'))"><i class="ti ti-copy"></i> کپی صفحه وب</button>
-          </div>
-          <div style="word-break:break-all;color:var(--accent2);margin-bottom:8px">${esc(s.sub_url)}</div>
-          
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px dashed var(--card-b)">
-            <span style="font-weight:700;color:var(--t1)"><i class="ti ti-rss"></i> لینک ساب کلینت‌ها (V2ray/Sing-box):</span>
+            <span style="font-weight:700;color:var(--t1)"><i class="ti ti-link"></i> لینک اشتراک (صفحه وب + کلاینت):</span>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-sm btn-g" onclick="navigator.clipboard.writeText('${esc(s.raw_sub_url)}').then(()=>toast('لینک ساب کپی شد ✓','ok'))"><i class="ti ti-copy"></i> کپی ساب</button>
-              <button class="btn btn-sm btn-g" onclick="showQR('${esc(s.label)}', '${esc(s.raw_sub_url)}')"><i class="ti ti-qrcode"></i> QR</button>
+              <button class="btn btn-sm btn-p" onclick="navigator.clipboard.writeText('${esc(s.sub_url)}').then(()=>toast('لینک اشتراک کپی شد ✓','ok'))"><i class="ti ti-copy"></i> کپی لینک</button>
+              <button class="btn btn-sm btn-g" onclick="showQR('${esc(s.label)}', '${esc(s.sub_url)}')"><i class="ti ti-qrcode"></i> QR</button>
             </div>
           </div>
+          <div style="word-break:break-all;color:var(--accent2);">${esc(s.sub_url)}</div>
         </div>
       </div>
     `;
@@ -1325,12 +1320,12 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 def get_public_page_html(uuid_key: str) -> str:
-    """صفحه پابلیک ساب - سیستم اشتراک‌ها و کانفیگ‌های gRPC توسط Kourosh با فونت وزیرمتن"""
+    """صفحه پابلیک ساب - سیستم اشتراک‌ها و کانفیگ‌های gRPC توسط FilterGosha با فونت وزیرمتن"""
     return f"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>توسط Kourosh Sub</title>
+<title>FilterGosha Sub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1424,13 +1419,13 @@ html,body{{min-height:100%;background:var(--bg);font-family:'Vazirmatn',sans-ser
   <div class="top">
     <div class="brand">
       <div class="brand-img"></div>
-      <div><div class="brand-name"><a href="https://t.me/kouroxlog" target="_blank">توسط Kourosh</a></div><div class="brand-sub">Secure Sub</div></div>
+      <div><div class="brand-name"><a href="https://t.me/FilterGosha" target="_blank">FilterGosha</a></div><div class="brand-sub">Secure Sub</div></div>
     </div>
   </div>
   <div id="root">
     <div style="text-align:center;padding:80px 20px;color:var(--t3)"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite;font-size:32px"></i><br><br>در حال بارگذاری اشتراک...</div>
   </div>
-  <div class="footer">پشتیبانی: <a href="https://t.me/kouroxlog" target="_blank">@kouroxlog</a> · توسط Kourosh</div>
+  <div class="footer">پشتیبانی: <a href="https://t.me/FilterGosha" target="_blank">@FilterGosha</a> · FilterGosha</div>
 </div>
 
 <script>
@@ -1457,11 +1452,9 @@ async function loadData(){{
 
 function renderContent(d){{
   const activeCount=d.links.filter(l=>l.active).length;
-  const baseSubUrl = d.sub_url || (window.location.protocol + '//' + window.location.host + '/p/' + UUID_KEY);
-  const rawSubUrl = d.raw_sub_url || (window.location.protocol + '//' + window.location.host + '/sub/' + UUID_KEY);
+  const baseSubUrl = d.sub_url || (window.location.protocol + '//' + window.location.host + '/sub/' + UUID_KEY);
 
   window._x4gSubUrl  = baseSubUrl;
-  window._x4gRawSubUrl = rawSubUrl;
   window._x4gSubName = d.name;
   window._x4gLinks   = d.links.map(l => ({{
     vless : l.vless_link,
@@ -1476,13 +1469,13 @@ function renderContent(d){{
       <div style="font-size:10.5px;color:var(--t3);margin-bottom:14px"><i class="ti ti-clock"></i> بروزرسانی: ${{new Date().toLocaleTimeString('fa-IR')}}</div>
       
       <div class="sub-sub-box">
-        <span class="sub-sub-url">${{esc(rawSubUrl)}}</span>
+        <span class="sub-sub-url">${{esc(baseSubUrl)}}</span>
         <button class="btn btn-p" style="padding:6px 12px;font-size:10.5px"
-          onclick="navigator.clipboard.writeText(window._x4gRawSubUrl).then(()=>toast('لینک ساب کپی شد ✓','ok'))">
+          onclick="navigator.clipboard.writeText(window._x4gSubUrl).then(()=>toast('لینک ساب کپی شد ✓','ok'))">
           <i class="ti ti-copy"></i> کپی لینک ساب
         </button>
         <button class="btn btn-g" style="padding:6px 12px;font-size:10.5px"
-          onclick="showQR(window._x4gSubName, window._x4gRawSubUrl)">
+          onclick="showQR(window._x4gSubName, window._x4gSubUrl)">
           <i class="ti ti-qrcode"></i> QR
         </button>
       </div>

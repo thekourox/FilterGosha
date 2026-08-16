@@ -1,5 +1,5 @@
 /**
- * X4G Panel - Cloudflare Pages Function Reverse Proxy (pages.dev Anti-DPI / WebSocket Bypass)
+ * FilterGosha Panel - Cloudflare Pages Function Reverse Proxy (pages.dev Anti-DPI / WebSocket Bypass)
  * File: functions/[[path]].js
  * 
  * Instructions:
@@ -64,6 +64,6 @@ export async function onRequest(context) {
       headers: responseHeaders
     });
   } catch (err) {
-    return new Response(`X4G Pages Proxy Error: ${err.message}`, { status: 502 });
+    return new Response(`FilterGosha Pages Proxy Error: ${err.message}`, { status: 502 });
   }
 }
