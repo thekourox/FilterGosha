@@ -357,8 +357,13 @@ select.inp{appearance:none;cursor:pointer}
   </div>
 
   <div class="card" style="margin-bottom:16px">
-    <div class="card-title"><i class="ti ti-settings"></i> تنظیمات دامنه وورکر و آی‌پی تمیز</div>
+    <div class="card-title"><i class="ti ti-settings"></i> تنظیمات سراسری پنل، دامنه وورکر و پیشوند ریمارک</div>
     <form id="form-settings">
+      <div class="form-g">
+        <label>پیشوند نام کانفیگ (Remark Prefix)</label>
+        <input class="inp" id="st-remark-prefix" placeholder="مثلاً: Kourosh یا MyBrand (پیش‌فرض: Kourosh)">
+        <div style="font-size:10.5px;color:var(--t3);margin-top:4px">عبارتی که ابتدای ریمارک تمام لینک‌های VLESS قرار می‌گیرد (مثلاً: Kourosh-VLESS-1).</div>
+      </div>
       <div class="form-g">
         <label>دامنه وورکر کلادفلر (WORKER_DOMAIN)</label>
         <input class="inp" id="st-worker-domain" placeholder="مثلاً: worker.mydomain.com یا x4g-proxy.sub.workers.dev">
@@ -369,7 +374,7 @@ select.inp{appearance:none;cursor:pointer}
         <input class="inp" id="st-clean-ip" placeholder="مثلاً: 104.21.x.x (در صورت خالی بودن، از خود دامنه وورکر استفاده می‌شود)">
         <div style="font-size:10.5px;color:var(--t3);margin-top:4px">آی‌پی تمیز کلادفلر جهت درج در فیلد address لینک‌های VLESS کلاینت.</div>
       </div>
-      <button class="btn btn-p" type="submit" style="margin-top:10px"><i class="ti ti-check"></i> ذخیره تنظیمات وورکر</button>
+      <button class="btn btn-p" type="submit" style="margin-top:10px"><i class="ti ti-check"></i> ذخیره تنظیمات عمومی</button>
     </form>
   </div>
 
@@ -807,6 +812,7 @@ export async function onRequest(context) {
 async function loadSettings(){
   try{
     const r=await fetch('/api/settings'),d=await r.json();
+    document.getElementById('st-remark-prefix').value = d.remark_prefix||'Kourosh';
     document.getElementById('st-worker-domain').value = d.worker_domain||'';
     document.getElementById('st-clean-ip').value = d.clean_ip||'';
     document.getElementById('worker-code-box').value = WORKER_SCRIPT_TEMPLATE;
@@ -848,13 +854,14 @@ document.addEventListener('submit',async e=>{
   if(e.target && e.target.id==='form-settings'){
     e.preventDefault();
     const payload = {
+      remark_prefix: document.getElementById('st-remark-prefix').value.trim(),
       worker_domain: document.getElementById('st-worker-domain').value.trim(),
       clean_ip: document.getElementById('st-clean-ip').value.trim(),
     };
     try{
       const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       if(r.ok){
-        toast('تنظیمات وورکر ذخیره شد ✓','ok');
+        toast('تنظیمات عمومی پنل ذخیره شد ✓','ok');
         loadSettings();
       }else{
         toast('خطا در ذخیره تنظیمات','err');

@@ -15,12 +15,15 @@ from speed_limit import throttle
 RELAY_BUF = 256 * 1024   # 256 KB buffer
 
 def _ws_client_ip(ws: WebSocket) -> str:
+    cf_ip = ws.headers.get("cf-connecting-ip")
+    if cf_ip and cf_ip.strip():
+        return cf_ip.strip()
+    real_ip = ws.headers.get("x-real-ip")
+    if real_ip and real_ip.strip():
+        return real_ip.strip()
     fwd = ws.headers.get("x-forwarded-for")
     if fwd:
         return fwd.split(",")[0].strip()
-    real_ip = ws.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip()
     return ws.client.host if ws.client else "نامشخص"
 
 async def parse_vless_header(chunk: bytes):
@@ -45,7 +48,7 @@ async def parse_vless_header(chunk: bytes):
     return command, address, port, chunk[pos:]
 
 async def check_and_use(uid: str, n: int) -> bool:
-    from main import LINKS, LINKS_LOCK, stats, hourly_traffic, is_link_allowed, now_ir
+    from main import LINKS, LINKS_LOCK, SUBS, stats, hourly_traffic, is_link_allowed, now_ir
     async with LINKS_LOCK:
         link = LINKS.get(uid)
         if link is None:
@@ -53,6 +56,13 @@ async def check_and_use(uid: str, n: int) -> bool:
         if not is_link_allowed(link):
             return False
         link["used_bytes"] += n
+
+        sub_id = link.get("sub_id")
+        if sub_id:
+            sub = SUBS.get(sub_id)
+            if sub:
+                sub["used_bytes"] += n
+
         stats["total_bytes"] += n
         hourly_traffic[now_ir().strftime("%H:00")] += n
     return True

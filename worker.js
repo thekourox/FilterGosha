@@ -30,6 +30,7 @@ export default {
       const clientIp = request.headers.get("CF-Connecting-IP");
       if (clientIp) {
         newHeaders.set("X-Real-IP", clientIp);
+        newHeaders.set("CF-Connecting-IP", clientIp);
         const existingFwd = request.headers.get("X-Forwarded-For");
         newHeaders.set("X-Forwarded-For", existingFwd ? `${existingFwd}, ${clientIp}` : clientIp);
       }

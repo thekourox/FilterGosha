@@ -73,6 +73,7 @@ app.add_middleware(
 SETTINGS = {
     "worker_domain": os.environ.get("WORKER_DOMAIN", "").strip(),
     "clean_ip": os.environ.get("CLEAN_IP", "").strip(),
+    "remark_prefix": os.environ.get("REMARK_PREFIX", "Kourosh").strip() or "Kourosh",
 }
 
 async def load_state():
@@ -339,15 +340,18 @@ def generate_vless_link(
 
 def vless_link_for_link(link: dict, uid: str, host: str) -> str:
     proto = link.get("protocol", DEFAULT_PROTOCOL)
+    prefix = (SETTINGS.get("remark_prefix") or "Kourosh").strip()
+    label = link.get("label", "")
+    full_remark = f"{prefix}-{label}" if prefix else label
     if proto == "custom":
         raw = (link.get("custom_uri") or "").strip()
         if not raw:
-            return f"socks://{uid}@{host}:1080#{quote('Kourosh-' + link.get('label',''))}"
+            return f"socks://{uid}@{host}:1080#{quote(full_remark)}"
         return raw.replace("{host}", host).replace("{uuid}", uid)
     return generate_vless_link(
         uuid=uid,
         host=host,
-        remark=f"Kourosh-{link.get('label','')}",
+        remark=full_remark,
         protocol=proto,
         fingerprint=link.get("fingerprint"),
         alpn=link.get("alpn"),
@@ -482,12 +486,15 @@ def is_ip_allowed(link: dict | None, uuid: str, ip: str) -> bool:
     return True
 
 def client_ip(request: Request) -> str:
+    cf_ip = request.headers.get("cf-connecting-ip")
+    if cf_ip and cf_ip.strip():
+        return cf_ip.strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip and real_ip.strip():
+        return real_ip.strip()
     fwd = request.headers.get("x-forwarded-for")
     if fwd:
         return fwd.split(",")[0].strip()
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip()
     return request.client.host if request.client else "نامشخص"
 
 # ── Basic endpoints ───────────────────────────────────────────────────────────
@@ -614,6 +621,7 @@ async def get_settings(_=Depends(require_auth)):
     return {
         "worker_domain": SETTINGS.get("worker_domain", ""),
         "clean_ip": SETTINGS.get("clean_ip", ""),
+        "remark_prefix": SETTINGS.get("remark_prefix", "Kourosh"),
     }
 
 @app.post("/api/settings")
@@ -623,8 +631,10 @@ async def update_settings(request: Request, _=Depends(require_auth)):
         SETTINGS["worker_domain"] = str(body["worker_domain"]).strip()
     if "clean_ip" in body:
         SETTINGS["clean_ip"] = str(body["clean_ip"]).strip()
+    if "remark_prefix" in body:
+        SETTINGS["remark_prefix"] = str(body["remark_prefix"]).strip() or "Kourosh"
     await save_state()
-    log_activity("settings", "تنظیمات وورکر کلادفلر بروزرسانی شد", "ok")
+    log_activity("settings", "تنظیمات عمومی پنل بروزرسانی شد", "ok")
     return {"ok": True, "settings": dict(SETTINGS)}
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
@@ -1131,7 +1141,12 @@ async def grpc_tunnel_route(service_name: str, request: Request, method_name: st
 from relay_vless import websocket_tunnel
 app.add_api_websocket_route("/ws/{uuid}", websocket_tunnel)
 
-# 3. XHTTP Ultra Router
+# 3. Native SOCKS5 over WebSocket Route
+from relay_socks5 import handle_socks5_ws
+app.add_api_websocket_route("/socks5/{uuid}", handle_socks5_ws)
+app.add_api_websocket_route("/socks/{uuid}", handle_socks5_ws)
+
+# 4. XHTTP Ultra Router
 from xhttp_siz10 import router as xhttp_router
 app.include_router(xhttp_router)
 
