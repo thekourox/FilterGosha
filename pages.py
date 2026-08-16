@@ -60,7 +60,7 @@ input:focus+.ic{color:var(--accent)}
   <div class="card">
     <div class="brand">
       <div class="brand-img"></div>
-      <div><div class="brand-name"><a href="https://t.me/FilterGosha" target="_blank">FilterGosha</a></div><div class="brand-sub">v9.8</div></div>
+      <div><div class="brand-name"><a href="https://t.me/FilterGosha" target="_blank">FilterGosha</a></div><div class="brand-sub">v1.24</div></div>
     </div>
     <h1>ورود به پنل مدیریت</h1>
     <p class="sub">رمز عبور را برای دسترسی به داشبورد وارد کنید</p>
@@ -234,7 +234,7 @@ select.inp{appearance:none;cursor:pointer}
   <button class="menu-btn" id="close-sb" style="position:absolute;left:10px;top:14px"><i class="ti ti-x"></i></button>
   <div class="logo">
     <div class="logo-img"></div>
-    <div><div class="logo-name"><a href="https://t.me/FilterGosha" target="_blank">FilterGosha</a></div><div class="logo-sub">v9.8 · gRPC / WS / XHTTP</div></div>
+    <div><div class="logo-name"><a href="https://t.me/FilterGosha" target="_blank">FilterGosha</a></div><div class="logo-sub">v1.24 · gRPC / WS / XHTTP</div></div>
   </div>
   <div class="nav-wrap">
     <div class="nav-sec">پنل</div>
@@ -308,7 +308,7 @@ select.inp{appearance:none;cursor:pointer}
   <!-- DASHBOARD FOOTER -->
   <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-top:20px;border-top:1px solid var(--card-b);font-size:11px;color:var(--t3)">
     <div><a href="https://t.me/FilterGosha" target="_blank" style="color:var(--accent2);text-decoration:none"><i class="ti ti-brand-telegram"></i> t.me/FilterGosha</a></div>
-    <div>FilterGosha v9.8 · Railway</div>
+    <div>FilterGosha v1.24 · Railway</div>
   </div>
 </section>
 
@@ -1425,7 +1425,7 @@ html,body{{min-height:100%;background:var(--bg);font-family:'Vazirmatn',sans-ser
   <div id="root">
     <div style="text-align:center;padding:80px 20px;color:var(--t3)"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite;font-size:32px"></i><br><br>در حال بارگذاری اشتراک...</div>
   </div>
-  <div class="footer">پشتیبانی: <a href="https://t.me/FilterGosha" target="_blank">@FilterGosha</a> · FilterGosha</div>
+  <div class="footer">پشتیبانی: <a href="https://t.me/kouroxdev" target="_blank">@kouroxdev</a> · FilterGosha</div>
 </div>
 
 <script>
