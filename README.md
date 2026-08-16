@@ -1,4 +1,5 @@
 کانال تلگرام : [https://t.me/FilterGosha](https://t.me/FilterGosha)
+فورک شده از X4G
 
 # 🚀 FilterGosha
 
