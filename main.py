@@ -10,8 +10,13 @@ from zoneinfo import ZoneInfo
 from urllib.parse import quote
 from collections import deque, defaultdict
 from pathlib import Path
+import sqlite3
+import tempfile
+import shutil
+import random
+import string
 
-from fastapi import FastAPI, Request, HTTPException, Depends, WebSocket
+from fastapi import FastAPI, Request, HTTPException, Depends, WebSocket, UploadFile, File, Form
 from fastapi.responses import Response, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -21,9 +26,34 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("FilterGosha")
 
+from contextlib import asynccontextmanager
+
 IRAN_TZ = ZoneInfo("Asia/Tehran")
 
-app = FastAPI(title="FilterGosha", docs_url=None, redoc_url=None)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global http_client
+    limits = httpx.Limits(max_connections=500, max_keepalive_connections=100)
+    timeout = httpx.Timeout(30.0, connect=10.0)
+    http_client = httpx.AsyncClient(
+        limits=limits, timeout=timeout, follow_redirects=True,
+    )
+    await load_state()
+    
+    # Start SOCKS5 TCP server
+    from relay_socks5 import start_socks5_tcp_server
+    socks_tcp_task = asyncio.create_task(start_socks5_tcp_server())
+    
+    log_activity("system", "سرور راه‌اندازی شد", "ok")
+    logger.info(f"FilterGosha Panel v9.8 started on port {CONFIG['port']}")
+    yield
+    
+    socks_tcp_task.cancel()
+    await save_state()
+    if http_client:
+        await http_client.aclose()
+
+app = FastAPI(title="FilterGosha", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 # ── Persistence ───────────────────────────────────────────────────────────────
 def resolve_data_dir() -> Path:
@@ -36,8 +66,16 @@ def resolve_data_dir() -> Path:
 
 DATA_DIR = resolve_data_dir()
 DATA_FILE = DATA_DIR / "x4g_state.json"
+DATA_DB = DATA_DIR / "x4g_state.db"
 SECRET_FILE = DATA_DIR / "x4g_secret.key"
 SAVE_LOCK = asyncio.Lock()
+
+def init_db():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(DATA_DB) as conn:
+        conn.execute("CREATE TABLE IF NOT EXISTS links (uuid TEXT PRIMARY KEY, data TEXT)")
+        conn.execute("CREATE TABLE IF NOT EXISTS subs (sub_id TEXT PRIMARY KEY, data TEXT)")
+        conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
 
 def _load_or_create_secret() -> str:
     env_secret = os.environ.get("SECRET_KEY")
@@ -78,43 +116,177 @@ SETTINGS = {
 
 async def load_state():
     global LINKS, AUTH, SUBS, SETTINGS
+    init_db()
     try:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(DATA_DB) as conn:
+            for row in conn.execute("SELECT uuid, data FROM links"):
+                LINKS[row[0]] = json.loads(row[1])
+            for row in conn.execute("SELECT sub_id, data FROM subs"):
+                s = json.loads(row[1])
+                if "links" not in s:
+                    s["links"] = []
+                if "username" not in s:
+                    s["username"] = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                SUBS[row[0]] = s
+            for row in conn.execute("SELECT key, value FROM settings"):
+                if row[0] == "password_hash":
+                    AUTH["password_hash"] = row[1]
+                else:
+                    SETTINGS[row[0]] = json.loads(row[1])
+                    
+        # Check if legacy JSON exists, if so migrate it!
         if DATA_FILE.exists():
-            async with aiofiles.open(DATA_FILE, "r", encoding="utf-8") as f:
-                raw = await f.read()
-            data = json.loads(raw)
-            LINKS.update(data.get("links", {}))
-            SUBS.update(data.get("subs", {}))
-            SETTINGS.update(data.get("settings", {}))
-            if "password_hash" in data:
-                AUTH["password_hash"] = data["password_hash"]
-            legacy_default_uids = [uid for uid, l in LINKS.items() if l.get("is_default")]
-            for uid in legacy_default_uids:
-                LINKS.pop(uid, None)
-            if legacy_default_uids:
+            try:
+                import aiofiles
+                async with aiofiles.open(DATA_FILE, "r", encoding="utf-8") as f:
+                    raw = await f.read()
+                data = json.loads(raw)
+                LINKS.update(data.get("links", {}))
+                SUBS.update(data.get("subs", {}))
+                SETTINGS.update(data.get("settings", {}))
+                if "password_hash" in data:
+                    AUTH["password_hash"] = data["password_hash"]
+                
                 asyncio.create_task(save_state())
-            logger.info(f"State loaded: {len(LINKS)} links, {len(SUBS)} subs, worker_domain='{SETTINGS.get('worker_domain')}'")
+                DATA_FILE.rename(DATA_FILE.with_suffix(".json.bak"))
+                logger.info("Migrated legacy JSON to SQLite DB.")
+            except Exception as e:
+                logger.warning(f"Could not migrate legacy json: {e}")
+
+        # Backward compatibility migration: Many-to-Many architecture
+        migrated = False
+        for uid, link in LINKS.items():
+            if "sub_id" in link:
+                sid = link["sub_id"]
+                if sid and sid in SUBS:
+                    if "links" not in SUBS[sid]:
+                        SUBS[sid]["links"] = []
+                    if uid not in SUBS[sid]["links"]:
+                        SUBS[sid]["links"].append(uid)
+                del link["sub_id"]
+                migrated = True
+        
+        for sid, sub in SUBS.items():
+            if "links" not in sub:
+                sub["links"] = []
+                migrated = True
+                
+        if migrated:
+            asyncio.create_task(save_state())
+            logger.info("Migrated old 1-to-1 sub links to Many-to-Many architecture.")
+
+        # Seed default data if database is brand new / empty
+        if len(LINKS) == 0:
+            logger.info("Database is empty. Seeding initial default configurations and subscription...")
+            default_links_data = [
+                {
+                    "label": "gRPC-Direct",
+                    "protocol": "vless-grpc",
+                    "fingerprint": "chrome",
+                    "alpn": "h2",
+                    "port": 443,
+                    "fragment_packets": "tlshello",
+                },
+                {
+                    "label": "WS-Direct",
+                    "protocol": "vless-ws",
+                    "fingerprint": "chrome",
+                    "alpn": "http/1.1",
+                    "port": 443,
+                    "fragment_packets": "tlshello",
+                },
+                {
+                    "label": "XHTTP-Auto",
+                    "protocol": "xhttp",
+                    "fingerprint": "chrome",
+                    "alpn": "http/1.1",
+                    "port": 443,
+                    "fragment_packets": "tlshello",
+                },
+                {
+                    "label": "Custom-SOCKS",
+                    "type": "socks",
+                    "protocol": "custom",
+                    "fingerprint": "chrome",
+                    "alpn": "",
+                    "port": 443,
+                    "custom_uri": "socks://{username}@{host}:1080#CustomProxy",
+                },
+            ]
+            created_link_ids = []
+            for item in default_links_data:
+                uid = generate_uuid()
+                LINKS[uid] = {
+                    "label": item["label"],
+                    "limit_bytes": 0,
+                    "used_bytes": 0,
+                    "created_at": datetime.now().isoformat(),
+                    "active": True,
+                    "expires_at": None,
+                    "note": "",
+                    "is_default": False,
+                    "protocol": item["protocol"],
+                    "fingerprint": item.get("fingerprint", DEFAULT_FINGERPRINT),
+                    "alpn": item.get("alpn", ""),
+                    "port": item.get("port", DEFAULT_PORT),
+                    "ip_limit": 0,
+                    "speed_limit_bytes": 0,
+                    "clean_ip": "",
+                    "sni": "",
+                    "host": "",
+                    "fragment_packets": item.get("fragment_packets", ""),
+                    "fragment_length": "10-20",
+                    "fragment_interval": "10-20",
+                    "mux_enable": False,
+                    "mux_concurrency": 8,
+                    "custom_uri": item.get("custom_uri", ""),
+                }
+                created_link_ids.append(uid)
+
+            if len(SUBS) == 0:
+                sub_id = generate_uuid()
+                SUBS[sub_id] = {
+                    "label": "اشتراک پیش‌فرض",
+                    "limit_bytes": 0,
+                    "used_bytes": 0,
+                    "created_at": datetime.now().isoformat(),
+                    "expires_at": None,
+                    "active": True,
+                    "ip_limit": 0,
+                    "speed_limit_bytes": 0,
+                    "note": "اشتراک پیش‌فرض ایجادشده توسط سیستم",
+                    "links": created_link_ids,
+                }
+
+            asyncio.create_task(save_state())
+            logger.info(f"Seeded {len(LINKS)} default configs and {len(SUBS)} subscription into SQLite DB.")
+
+        logger.info(f"State loaded: {len(LINKS)} links, {len(SUBS)} subs, worker_domain='{SETTINGS.get('worker_domain')}'")
     except Exception as e:
-        logger.warning(f"Could not load state: {e}")
+        logger.warning(f"Could not load state from DB: {e}")
 
 async def save_state():
     async with SAVE_LOCK:
         try:
-            DATA_DIR.mkdir(parents=True, exist_ok=True)
-            data = {
-                "links": dict(LINKS),
-                "subs": dict(SUBS),
-                "settings": dict(SETTINGS),
-                "password_hash": AUTH["password_hash"],
-                "saved_at": datetime.now().isoformat(),
-            }
-            tmp = DATA_FILE.with_suffix(".tmp")
-            async with aiofiles.open(tmp, "w", encoding="utf-8") as f:
-                await f.write(json.dumps(data, ensure_ascii=False, indent=2))
-            tmp.replace(DATA_FILE)
+            init_db()
+            with sqlite3.connect(DATA_DB) as conn:
+                conn.execute("BEGIN TRANSACTION")
+                # Links
+                conn.execute("DELETE FROM links")
+                conn.executemany("INSERT INTO links (uuid, data) VALUES (?, ?)", 
+                                 [(k, json.dumps(v, ensure_ascii=False)) for k, v in LINKS.items()])
+                # Subs
+                conn.execute("DELETE FROM subs")
+                conn.executemany("INSERT INTO subs (sub_id, data) VALUES (?, ?)", 
+                                 [(k, json.dumps(v, ensure_ascii=False)) for k, v in SUBS.items()])
+                # Settings
+                conn.execute("DELETE FROM settings")
+                conn.execute("INSERT INTO settings (key, value) VALUES (?, ?)", ("password_hash", AUTH["password_hash"]))
+                for k, v in SETTINGS.items():
+                    conn.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (k, json.dumps(v, ensure_ascii=False)))
+                conn.commit()
         except Exception as e:
-            logger.warning(f"Could not save state: {e}")
+            logger.warning(f"Could not save state to DB: {e}")
 
 # ── In-memory state ───────────────────────────────────────────────────────────
 connections: dict = {}
@@ -134,14 +306,14 @@ SUBS: dict = {}
 SUBS_LOCK = asyncio.Lock()
 
 # Protocol and configuration standards
-PROTOCOLS = ("vless-grpc", "vless-ws", "xhttp", "custom")
+PROTOCOLS = ("vless-grpc", "vless-ws", "xhttp", "socks5", "socks", "custom")
 DEFAULT_PROTOCOL = "vless-grpc"
 
 FINGERPRINTS = ("chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized")
 DEFAULT_FINGERPRINT = "chrome"
 
 DEFAULT_PORT = 443
-ALLOWED_PORTS = (443, 8443)
+ALLOWED_PORTS = (443, 8443, 1080)
 
 DEFAULT_SPEED_LIMIT = 0
 
@@ -194,24 +366,7 @@ async def require_auth(request: Request):
         raise HTTPException(status_code=401, detail="unauthorized")
     return token
 
-# ── Startup / Shutdown ────────────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup():
-    global http_client
-    limits = httpx.Limits(max_connections=500, max_keepalive_connections=100)
-    timeout = httpx.Timeout(30.0, connect=10.0)
-    http_client = httpx.AsyncClient(
-        limits=limits, timeout=timeout, follow_redirects=True,
-    )
-    await load_state()
-    log_activity("system", "سرور راه‌اندازی شد", "ok")
-    logger.info(f"FilterGosha Panel v9.8 started on port {CONFIG['port']}")
 
-@app.on_event("shutdown")
-async def shutdown():
-    await save_state()
-    if http_client:
-        await http_client.aclose()
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def get_host(request: Request | None = None) -> str:
@@ -338,18 +493,23 @@ def generate_vless_link(
     query = "&".join(f"{k}={quote(str(v), safe='')}" for k, v in params)
     return f"vless://{uuid}@{target_addr}:{port_val}?{query}#{quote(remark)}"
 
-def vless_link_for_link(link: dict, uid: str, host: str) -> str:
+def vless_link_for_link(link: dict, uid: str, host: str, sub_id: str | None = None) -> str:
     proto = link.get("protocol", DEFAULT_PROTOCOL)
     prefix = (SETTINGS.get("remark_prefix") if SETTINGS.get("remark_prefix") is not None else "FilterGosha").strip()
     label = link.get("label", "")
     full_remark = f"{prefix}-{label}" if prefix else label
-    if proto == "custom":
+    link_uuid = sub_id or uid
+    
+    sub_username = SUBS.get(link_uuid, {}).get("username", link_uuid)
+    
+    if proto in ("custom", "socks5", "socks"):
         raw = (link.get("custom_uri") or "").strip()
         if not raw:
-            return f"socks://{uid}@{host}:1080#{quote(full_remark)}"
-        return raw.replace("{host}", host).replace("{uuid}", uid)
+            socks_port = SETTINGS.get("socks5_port", "1080")
+            return f"socks://{sub_username}@{host}:{socks_port}#{quote(full_remark)}"
+        return raw.replace("{host}", host).replace("{uuid}", link_uuid).replace("{username}", sub_username)
     return generate_vless_link(
-        uuid=uid,
+        uuid=link_uuid,
         host=host,
         remark=full_remark,
         protocol=proto,
@@ -373,23 +533,35 @@ def uptime() -> str:
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 async def check_and_use(uid: str, n: int) -> bool:
-    async with LINKS_LOCK:
-        link = LINKS.get(uid)
-        if link is None:
-            return False
-        if not is_link_allowed(link):
-            return False
-        link["used_bytes"] += n
-        
-        sub_id = link.get("sub_id")
-        if sub_id:
-            sub = SUBS.get(sub_id)
-            if sub:
-                sub["used_bytes"] += n
+    # 1. Check if uid is a Subscription
+    async with SUBS_LOCK:
+        if uid in SUBS:
+            sub = SUBS[uid]
+            if not sub.get("active", True) or is_sub_expired(sub):
+                return False
+            sb = sub.get("limit_bytes", 0)
+            if sb > 0 and sub.get("used_bytes", 0) >= sb:
+                return False
+            sub["used_bytes"] += n
+            stats["total_bytes"] += n
+            hourly_traffic[now_ir().strftime("%H:00")] += n
+            return True
 
-        stats["total_bytes"] += n
-        hourly_traffic[now_ir().strftime("%H:00")] += n
-    return True
+    # 2. Check if uid is a Standalone Config
+    async with LINKS_LOCK:
+        if uid in LINKS:
+            link = LINKS[uid]
+            if not link.get("active", True) or is_link_expired(link):
+                return False
+            lb = link.get("limit_bytes", 0)
+            if lb > 0 and link.get("used_bytes", 0) >= lb:
+                return False
+            link["used_bytes"] += n
+            stats["total_bytes"] += n
+            hourly_traffic[now_ir().strftime("%H:00")] += n
+            return True
+
+    return False
 
 def parse_size_to_bytes(value: float, unit: str) -> int:
     unit = unit.upper()
@@ -455,9 +627,7 @@ def is_link_allowed(link: dict | None) -> bool:
 def get_sub_used_bytes(sub_id: str, sub: dict | None = None) -> int:
     if sub is None:
         sub = SUBS.get(sub_id)
-    s_used = sub.get("used_bytes", 0) if sub else 0
-    links_used = sum(l.get("used_bytes", 0) for l in LINKS.values() if l.get("sub_id") == sub_id)
-    return max(s_used, links_used)
+    return sub.get("used_bytes", 0) if sub else 0
 
 def fmt_bytes(b: int) -> str:
     if b < 1024: return f"{b} B"
@@ -551,27 +721,36 @@ def unique_ips_for_sub(sub_id: str) -> set:
     sub_links = {uid for uid, l in LINKS.items() if l.get("sub_id") == sub_id}
     return {c.get("ip") for c in list(connections.values()) if c.get("uuid") in sub_links and c.get("ip") and c.get("ip") != "نامشخص"}
 
-def is_ip_allowed(link: dict | None, uuid: str, ip: str) -> bool:
-    if link is None:
-        return False
-    if not ip or ip == "نامشخص":
-        return True
-        
-    sub_id = link.get("sub_id")
-    if sub_id and sub_id in SUBS:
-        sub_limit = int(SUBS[sub_id].get("ip_limit", 0) or 0)
-        if sub_limit > 0:
-            ips = unique_ips_for_sub(sub_id)
-            if ip not in ips and len(ips) >= sub_limit:
+def is_ip_allowed(uid: str, ip: str) -> bool:
+    if not ip or ip == "نامشخص": return True
+    sub = SUBS.get(uid)
+    if sub:
+        limit = int(sub.get("ip_limit", 0) or 0)
+        if limit > 0:
+            ips = unique_ips_for_uuid(uid)
+            if ip not in ips and len(ips) >= limit:
                 return False
-                
-    limit = int(link.get("ip_limit", 0) or 0)
-    if limit > 0:
-        ips = unique_ips_for_uuid(uuid)
-        if ip not in ips and len(ips) >= limit:
-            return False
-            
-    return True
+        return True
+
+    link = LINKS.get(uid)
+    if link:
+        limit = int(link.get("ip_limit", 0) or 0)
+        if limit > 0:
+            ips = unique_ips_for_uuid(uid)
+            if ip not in ips and len(ips) >= limit:
+                return False
+        return True
+
+    return False
+
+def get_speed_limit(uid: str) -> int:
+    sub = SUBS.get(uid)
+    if sub:
+        return sub.get("speed_limit_bytes", 0)
+    link = LINKS.get(uid)
+    if link:
+        return link.get("speed_limit_bytes", 0)
+    return 0
 
 def client_ip(request: Request) -> str:
     host = request.client.host if request.client else None
@@ -642,9 +821,9 @@ async def subscription_single(uuid: str, request: Request):
             
         async with LINKS_LOCK:
             sub_links = [
-                vless_link_for_link(l, uid, host) 
-                for uid, l in LINKS.items() 
-                if l.get("sub_id") == uuid and is_link_allowed(l)
+                vless_link_for_link(LINKS[uid], uid, host, sub_id=uuid) 
+                for uid in sub.get("links", [])
+                if uid in LINKS and is_link_allowed(LINKS[uid])
             ]
             
         content = base64.b64encode("\n".join(sub_links).encode()).decode()
@@ -757,6 +936,95 @@ async def update_settings(request: Request, _=Depends(require_auth)):
     await save_state()
     log_activity("settings", "تنظیمات عمومی پنل بروزرسانی شد", "ok")
     return {"ok": True, "settings": dict(SETTINGS)}
+
+from fastapi.responses import FileResponse
+import os
+
+@app.get("/api/export_db")
+async def export_db(_=Depends(require_auth)):
+    await save_state()
+    return FileResponse(DATA_DB, media_type="application/octet-stream", filename="filtergosha_backup.db")
+
+@app.post("/api/import_db_analyze")
+async def import_db_analyze(file: UploadFile = File(...), _=Depends(require_auth)):
+    if not file.filename.endswith(".db"):
+        raise HTTPException(status_code=400, detail="فرمت فایل باید .db باشد")
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+    conn = None
+    try:
+        conflicts = 0
+        conn = sqlite3.connect(tmp_path)
+        for row in conn.execute("SELECT uuid FROM links"):
+            if row[0] in LINKS: conflicts += 1
+        for row in conn.execute("SELECT sub_id FROM subs"):
+            if row[0] in SUBS: conflicts += 1
+        conn.close()
+        conn = None
+        return {"ok": True, "conflicts": conflicts}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"خطا در خواندن فایل دیتابیس: {e}")
+    finally:
+        if conn is not None:
+            try: conn.close()
+            except Exception: pass
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception as e:
+            logger.warning(f"Could not remove temp file {tmp_path}: {e}")
+
+@app.post("/api/import_db")
+async def import_db(file: UploadFile = File(...), mode: str = Form("skip"), _=Depends(require_auth)):
+    if not file.filename.endswith(".db"):
+        raise HTTPException(status_code=400, detail="فرمت فایل باید .db باشد")
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+    conn = None
+    try:
+        imported_links = {}
+        imported_subs = {}
+        conn = sqlite3.connect(tmp_path)
+        for row in conn.execute("SELECT uuid, data FROM links"):
+            imported_links[row[0]] = json.loads(row[1])
+        for row in conn.execute("SELECT sub_id, data FROM subs"):
+            imported_subs[row[0]] = json.loads(row[1])
+        conn.close()
+        conn = None
+                
+        async with LINKS_LOCK:
+            for uid, ldata in imported_links.items():
+                if uid in LINKS:
+                    if mode == "overwrite":
+                        LINKS[uid] = ldata
+                else:
+                    LINKS[uid] = ldata
+                    
+        async with SUBS_LOCK:
+            for sid, sdata in imported_subs.items():
+                if sid in SUBS:
+                    if mode == "overwrite":
+                        SUBS[sid] = sdata
+                else:
+                    SUBS[sid] = sdata
+                    
+        await save_state()
+        log_activity("system", f"دیتابیس با موفقیت ایمپورت شد (حالت: {mode})", "ok")
+        return {"ok": True}
+    except Exception as e:
+        logger.error(f"Import DB error: {e}")
+        raise HTTPException(status_code=400, detail=f"خطا در خواندن فایل دیتابیس: {e}")
+    finally:
+        if conn is not None:
+            try: conn.close()
+            except Exception: pass
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception as e:
+            logger.warning(f"Could not remove temp file {tmp_path}: {e}")
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 @app.get("/stats")
@@ -888,7 +1156,6 @@ async def make_link(
     port: int = DEFAULT_PORT,
     ip_limit: int = 0,
     speed_limit_bytes: int = 0,
-    sub_id: str | None = None,
     clean_ip: str = "",
     sni: str = "",
     host_header: str = "",
@@ -901,6 +1168,16 @@ async def make_link(
 ) -> tuple[str, dict]:
     if protocol not in PROTOCOLS:
         protocol = DEFAULT_PROTOCOL
+    if protocol in ("socks5", "socks"):
+        try:
+            port = int(SETTINGS.get("socks5_port", 1080))
+        except (ValueError, TypeError):
+            port = 1080
+        fragment_packets = ""
+        clean_ip = ""
+        sni = ""
+        host_header = ""
+        alpn = ""
     fingerprint = (fingerprint or DEFAULT_FINGERPRINT).strip().lower()
     if fingerprint not in FINGERPRINTS:
         fingerprint = DEFAULT_FINGERPRINT
@@ -923,7 +1200,6 @@ async def make_link(
             "port": port,
             "ip_limit": max(0, ip_limit),
             "speed_limit_bytes": max(0, speed_limit_bytes),
-            "sub_id": sub_id,
             "clean_ip": (clean_ip or "").strip(),
             "sni": (sni or "").strip(),
             "host": (host_header or "").strip(),
@@ -991,7 +1267,6 @@ async def create_link(request: Request, _=Depends(require_auth)):
         port=port,
         ip_limit=ip_limit,
         speed_limit_bytes=speed_limit_bytes,
-        sub_id=body.get("sub_id"),
         clean_ip=body.get("clean_ip") or "",
         sni=body.get("sni") or "",
         host_header=body.get("host_header") or body.get("host") or "",
@@ -1104,9 +1379,7 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             link["speed_limit_bytes"] = 0 if sv <= 0 else parse_speed_to_bytes(sv, su)
             from speed_limit import reset_bucket
             reset_bucket(uid)
-        if "sub_id" in body:
-            link["sub_id"] = body["sub_id"] if body["sub_id"] else None
-        if any(k in body for k in ("label", "protocol", "note", "limit_value", "expires_days", "fingerprint", "alpn", "port", "ip_limit", "speed_limit_value", "sub_id", "clean_ip", "sni", "host", "fragment_packets", "mux_enable")):
+        if any(k in body for k in ("label", "protocol", "note", "limit_value", "expires_days", "fingerprint", "alpn", "port", "ip_limit", "speed_limit_value", "clean_ip", "sni", "host", "fragment_packets", "mux_enable")):
             log_activity("link", f"کانفیگ «{link['label']}» ویرایش شد", "info")
 
     asyncio.create_task(save_state())
@@ -1136,11 +1409,13 @@ async def create_sub(request: Request, _=Depends(require_auth)):
     except: sv = 0
     su = body.get("speed_limit_unit") or "MBIT"
     speed_limit_bytes = 0 if sv <= 0 else parse_speed_to_bytes(sv, su)
-    sub_id = secrets.token_hex(8)
+    sub_id = generate_uuid()
+    sub_username = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
     
     async with SUBS_LOCK:
         SUBS[sub_id] = {
             "label": str(body.get("label") or "اشتراک جدید")[:60],
+            "username": sub_username,
             "limit_bytes": limit_bytes,
             "used_bytes": 0,
             "created_at": datetime.now().isoformat(),
@@ -1149,14 +1424,9 @@ async def create_sub(request: Request, _=Depends(require_auth)):
             "ip_limit": max(0, ip_limit),
             "speed_limit_bytes": speed_limit_bytes,
             "note": str(body.get("note") or "")[:200],
+            "links": body.get("links", []) if isinstance(body.get("links"), list) else [],
         }
         
-    if "links" in body and isinstance(body["links"], list):
-        async with LINKS_LOCK:
-            for uid in body["links"]:
-                if uid in LINKS:
-                    LINKS[uid]["sub_id"] = sub_id
-                    
     asyncio.create_task(save_state())
     log_activity("sub", f"اشتراک «{SUBS[sub_id]['label']}» ساخته شد", "ok")
     return {"ok": True, "sub_id": sub_id, "sub": SUBS[sub_id]}
@@ -1172,8 +1442,8 @@ async def list_subs(request: Request, _=Depends(require_auth)):
         link_snap = dict(LINKS)
         
     for sid, s in snap.items():
-        sub_links = [uid for uid, l in link_snap.items() if l.get("sub_id") == sid]
-        sub_conn_count = sum(1 for c in connections.values() if c.get("uuid") in sub_links)
+        sub_links = s.get("links", [])
+        sub_conn_count = sum(1 for c in connections.values() if c.get("uuid") in sub_links or c.get("uuid") == sid)
         
         sub_used = get_sub_used_bytes(sid, s)
         result.append({
@@ -1187,6 +1457,7 @@ async def list_subs(request: Request, _=Depends(require_auth)):
             "limit_fmt": "∞" if s.get("limit_bytes", 0) == 0 else fmt_bytes(s["limit_bytes"]),
             "sub_url": f"https://{host}/sub/{sid}",
             "raw_sub_url": f"https://{host}/sub/{sid}",
+            "username": s.get("username", sid),
             "links": sub_links,
         })
     result.sort(key=lambda x: x.get("created_at") or "", reverse=True)
@@ -1222,13 +1493,7 @@ async def update_sub(sid: str, request: Request, _=Depends(require_auth)):
             sub["speed_limit_bytes"] = 0 if sv <= 0 else parse_speed_to_bytes(sv, su)
 
         if "links" in body and isinstance(body["links"], list):
-            async with LINKS_LOCK:
-                for uid, l in LINKS.items():
-                    if l.get("sub_id") == sid and uid not in body["links"]:
-                        l["sub_id"] = None
-                for uid in body["links"]:
-                    if uid in LINKS:
-                        LINKS[uid]["sub_id"] = sid
+            sub["links"] = body["links"]
             
     asyncio.create_task(save_state())
     log_activity("sub", f"اشتراک «{sub.get('label')}» ویرایش شد", "info")
@@ -1241,11 +1506,6 @@ async def delete_sub(sid: str, _=Depends(require_auth)):
             raise HTTPException(status_code=404, detail="sub not found")
         label = SUBS[sid].get("label", sid)
         del SUBS[sid]
-        
-    async with LINKS_LOCK:
-        for uid, l in LINKS.items():
-            if l.get("sub_id") == sid:
-                l["sub_id"] = None
             
     asyncio.create_task(save_state())
     log_activity("sub", f"اشتراک «{label}» حذف شد", "err")
@@ -1318,7 +1578,7 @@ async def public_sub_data(uuid_key: str, request: Request):
         
     if sub:
         async with LINKS_LOCK:
-            sub_links = {uid: l for uid, l in LINKS.items() if l.get("sub_id") == uuid_key}
+            sub_links = {uid: LINKS[uid] for uid in sub.get("links", []) if uid in LINKS}
             
         links_sum = sum(l.get("used_bytes", 0) for l in sub_links.values())
         total_used = get_sub_used_bytes(uuid_key, sub)
@@ -1340,7 +1600,7 @@ async def public_sub_data(uuid_key: str, request: Request):
                 "limit_bytes": l.get("limit_bytes", 0),
                 "limit_fmt": "∞" if l.get("limit_bytes", 0) == 0 else fmt_bytes(l["limit_bytes"]),
                 "expires_at": l.get("expires_at"),
-                "vless_link": vless_link_for_link(l, uid, host),
+                "vless_link": vless_link_for_link(l, uid, host, sub_id=uuid_key),
                 "sub_url": f"https://{host}/sub/{uid}",
                 "connections": c_count,
                 "ip_limit": l.get("ip_limit", 0),
@@ -1351,6 +1611,7 @@ async def public_sub_data(uuid_key: str, request: Request):
             "locked": False,
             "name": sub["label"],
             "desc": sub.get("note", ""),
+            "username": sub.get("username", uuid_key),
             "sub_url": f"https://{host}/sub/{uuid_key}",
             "raw_sub_url": f"https://{host}/sub/{uuid_key}",
             "active_connections": active_conns,

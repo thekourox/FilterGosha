@@ -399,6 +399,16 @@ select.inp{appearance:none;cursor:pointer}
     </form>
   </div>
 
+  <div class="card" style="margin-top:16px">
+    <div class="card-title"><i class="ti ti-database"></i> بک‌آپ و بازیابی دیتابیس (SQLite)</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:12px">شما می‌توانید از کل اطلاعات پنل (لینک‌ها، اشتراک‌ها و تنظیمات) فایل بک‌آپ با فرمت db. دریافت کنید یا فایل بک‌آپ قبلی را بازیابی کنید.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-p" type="button" onclick="window.location.href='/api/export_db'"><i class="ti ti-download"></i> دانلود بک‌آپ (.db)</button>
+        <button class="btn btn-g" type="button" onclick="document.getElementById('import-db-file').click()"><i class="ti ti-upload"></i> آپلود و بازیابی (.db)</button>
+        <input type="file" id="import-db-file" accept=".db" style="display:none" onchange="handleImportDB(this.files[0])">
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
       <span><i class="ti ti-code"></i> اسکریپت Cloudflare Worker (Reverse Proxy)</span>
@@ -486,7 +496,7 @@ select.inp{appearance:none;cursor:pointer}
       <!-- PROTOCOL SELECTOR CARDS -->
       <div class="form-g">
         <label style="margin-bottom:8px;display:block">پروتکل / ترابرد (Transport)</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px" id="proto-cards">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(70px, 1fr));gap:6px" id="proto-cards">
           <div class="proto-card active" data-proto="vless-ws" onclick="selectProto('vless-ws')">
             <i class="ti ti-wifi" style="font-size:20px;margin-bottom:2px"></i>
             <div style="font-weight:800;font-size:11px">WebSocket</div>
@@ -505,7 +515,13 @@ select.inp{appearance:none;cursor:pointer}
             <div style="font-size:8.5px;color:var(--t3);margin-top:1px">ALPN: http/1.1</div>
             <div style="font-size:8.5px;color:var(--t3);margin-top:1px">Mode: auto</div>
           </div>
-          <div class="proto-card" data-proto="custom" onclick="selectProto('custom')">
+                      <div class="proto-card" data-proto="socks5" onclick="selectProto('socks5')">
+              <i class="ti ti-shield-lock" style="font-size:20px;margin-bottom:2px"></i>
+              <div style="font-weight:800;font-size:11px">SOCKS5</div>
+              <div style="font-size:8.5px;color:var(--t3);margin-top:1px">Direct TCP</div>
+              <div style="font-size:8.5px;color:var(--t3);margin-top:1px">Auth: Username</div>
+            </div>
+<div class="proto-card" data-proto="custom" onclick="selectProto('custom')">
             <i class="ti ti-code" style="font-size:20px;margin-bottom:2px"></i>
             <div style="font-weight:800;font-size:11px">کاستوم</div>
             <div style="font-size:8.5px;color:var(--t3);margin-top:1px">SOCKS/Custom</div>
@@ -525,7 +541,10 @@ select.inp{appearance:none;cursor:pointer}
           <b><i class="ti ti-info-circle"></i> gRPC:</b> از HTTP/2 استفاده می‌کند و Multiplexing داخلی دارد. نیاز به فعال‌سازی gRPC در Cloudflare.<br>
           <span style="color:var(--t3)">• ALPN ثابت: <code>h2</code> • Mux: داخلی (نیاز به تنظیم ندارد) • Fragment: قابل فعال‌سازی</span>
         </div>
-        <div id="proto-info-xhttp" class="proto-info-item" style="display:none">
+                <div id="proto-info-socks5" class="proto-info-item" style="display:none">
+          <b><i class="ti ti-info-circle"></i> SOCKS5:</b> یک پروکسی خام و مستقیم. مناسب برای وارد کردن دستی در تلگرام، نرم‌افزارها و تنظیمات ویندوز.
+        </div>
+          <div id="proto-info-xhttp" class="proto-info-item" style="display:none">
           <b><i class="ti ti-info-circle"></i> XHTTP:</b> پروتکل پیشرفته با حالت انتقال خودکار (auto mode). سازگار با Worker.<br>
           <span style="color:var(--t3)">• ALPN ثابت: <code>http/1.1</code> • Mux: پشتیبانی نمی‌شود • Fragment: قابل فعال‌سازی</span>
         </div>
@@ -542,7 +561,7 @@ select.inp{appearance:none;cursor:pointer}
         <div style="font-size:10px;color:var(--t3);margin-top:4px">لینک کاملی که کلاینت دریافت خواهد کرد. امکان استفاده از <code>{host}</code> وجود دارد.</div>
       </div>
 
-      <div class="form-g"><label>اشتراک والد (اختیاری)</label><select class="inp" id="nl-sub"><option value="">بدون اشتراک (مستقل)</option></select></div>
+
       <div class="form-row">
         <div class="form-g"><label>حجم (0 = نامحدود)</label><input class="inp" type="number" step="0.1" id="nl-val" value="0"></div>
         <div class="form-g"><label>واحد حجم</label><select class="inp" id="nl-unit"><option value="GB">GB</option><option value="MB">MB</option></select></div>
@@ -554,7 +573,7 @@ select.inp{appearance:none;cursor:pointer}
       <div class="form-g"><label>توضیحات</label><input class="inp" id="nl-note" placeholder="توضیحات اختیاری..."></div>
 
       <!-- ADVANCED SETTINGS - PROTOCOL AWARE -->
-      <div style="margin-top:14px;border-top:1px dashed var(--card-b);padding-top:10px">
+      <div id="adv-settings-wrapper" style="margin-top:14px;border-top:1px dashed var(--card-b);padding-top:10px">
         <button type="button" class="btn btn-sm btn-g" onclick="const b=document.getElementById('adv-settings-box');b.style.display=b.style.display==='none'?'block':'none'" style="width:100%;justify-content:space-between">
           <span><i class="ti ti-adjustments"></i> تنظیمات شبکه و ضد فیلترینگ</span>
           <i class="ti ti-chevron-down"></i>
@@ -880,6 +899,40 @@ function copyPagesScript(){
   navigator.clipboard.writeText(code).then(()=>toast('کد Cloudflare Pages Function کپی شد ✓','ok'));
 }
 
+async function handleImportDB(file) {
+  if(!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const r = await fetch('/api/import_db_analyze', {method:'POST', body:formData});
+    const d = await r.json();
+    if(!r.ok) return toast(d.detail || 'خطا در آنالیز دیتابیس','err');
+    
+    let mode = 'skip';
+    if(d.conflicts > 0) {
+      if(!confirm(`تعداد ${d.conflicts} کانفیگ/اشتراک تکراری در فایل بک‌آپ یافت شد.\\nآیا می‌خواهید اطلاعات موجود در پنل با اطلاعات بک‌آپ جایگزین (Overwrite) شود؟\\n\\n- [OK] = بله جایگزین کن\\n- [Cancel] = خیر، نادیده بگیر و رد شو`)) {
+        mode = 'skip';
+      } else {
+        mode = 'overwrite';
+      }
+    }
+    
+    formData.append('mode', mode);
+    const r2 = await fetch('/api/import_db', {method:'POST', body:formData});
+    if(r2.ok) {
+      toast('دیتابیس با موفقیت بازگردانی شد ✓','ok');
+      setTimeout(()=>window.location.reload(), 1500);
+    } else {
+      const d2 = await r2.json();
+      toast(d2.detail || 'خطا در بازگردانی دیتابیس','err');
+    }
+  } catch(e) {
+    toast('خطا در ارتباط با سرور','err');
+  }
+  document.getElementById('import-db-file').value = '';
+}
+
+
 // STATS & DASHBOARD OVERVIEW
 let ch1, chDonut;
 async function fetchStats(){
@@ -1119,7 +1172,8 @@ async function loadLinks(){
 function protoChipText(proto){
   if(proto==='vless-ws') return '<span class="badge bg-blue"><i class="ti ti-wifi"></i> VLESS WS</span>';
   if(proto==='xhttp') return '<span class="badge bg-green" style="background:var(--purple-bg);color:var(--purple-t)"><i class="ti ti-bolt"></i> XHTTP Auto</span>';
-  if(proto==='custom') return '<span class="badge bg-amber" style="background:rgba(242,163,61,0.12);color:#F9C988"><i class="ti ti-code"></i> کاستوم / SOCKS</span>';
+  if(proto==='socks5'||proto==='socks') return '<span class="badge bg-amber" style="background:rgba(242,163,61,0.12);color:#F9C988"><i class="ti ti-shield-lock"></i> SOCKS5</span>';
+  if(proto==='custom') return '<span class="badge bg-amber" style="background:rgba(242,163,61,0.12);color:#F9C988"><i class="ti ti-code"></i> کاستوم</span>';
   return '<span class="badge bg-green"><i class="ti ti-route"></i> VLESS gRPC</span>';
 }
 
@@ -1144,7 +1198,7 @@ function renderLinks(links){
           </div>
           <div style="display:flex;gap:6px">
             <button class="btn btn-sm btn-g" onclick="openLinkModal('${l.uuid}')"><i class="ti ti-edit"></i> ویرایش</button>
-            <button class="btn btn-sm btn-g" onclick="navigator.clipboard.writeText('${esc(l.vless_link)}').then(()=>toast('لینک VLESS کپی شد ✓','ok'))"><i class="ti ti-copy"></i> کپی VLESS</button>
+            <button class="btn btn-sm btn-g" onclick="navigator.clipboard.writeText('${esc(l.vless_link)}').then(()=>toast('لینک VLESS کپی شد ✓','ok'))"><i class="ti ti-copy"></i> کپی لینک</button>
             <button class="btn btn-sm btn-g" onclick="showQR('${esc(l.label)}', '${esc(l.vless_link)}')"><i class="ti ti-qrcode"></i> QR</button>
             <button class="btn btn-sm btn-d" onclick="deleteLink('${l.uuid}')"><i class="ti ti-trash"></i></button>
           </div>
@@ -1168,25 +1222,34 @@ function selectProto(proto){
   if(proto==='vless-ws') document.getElementById('proto-info-ws').style.display='block';
   else if(proto==='vless-grpc') document.getElementById('proto-info-grpc').style.display='block';
   else if(proto==='xhttp') document.getElementById('proto-info-xhttp').style.display='block';
-  else document.getElementById('proto-info-custom').style.display='block';
+  else if(proto==='socks5'||proto==='socks') {
+    const s5El = document.getElementById('proto-info-socks5');
+    if(s5El) s5El.style.display='block';
+  }
+  else if(document.getElementById('proto-info-custom')) document.getElementById('proto-info-custom').style.display='block';
 
   // Toggle custom URI field
   const rowCustom = document.getElementById('row-custom-uri');
   if(rowCustom) rowCustom.style.display = (proto === 'custom') ? 'block' : 'none';
 
+  // Toggle advanced settings (Fragment / TLS / Clean IP / SNI / ALPN)
+  const advWrap = document.getElementById('adv-settings-wrapper');
+  if(advWrap) {
+    advWrap.style.display = (proto === 'socks5' || proto === 'socks' || proto === 'custom') ? 'none' : 'block';
+  }
+
   // Set default ALPN dropdown selection based on transport protocol
   const alpnEl = document.getElementById('nl-alpn');
-  if(proto==='vless-grpc'){ alpnEl.value = 'h2'; }
-  else { alpnEl.value = 'http/1.1'; }
+  if(alpnEl){
+    if(proto==='vless-grpc'){ alpnEl.value = 'h2'; }
+    else { alpnEl.value = 'http/1.1'; }
+  }
 }
 
 async function openLinkModal(uid=''){
   currentLinkId = uid;
   document.getElementById('link-modal-title').innerHTML = uid ? '<i class="ti ti-edit"></i> ویرایش کانفیگ' : '<i class="ti ti-link"></i> ساخت کانفیگ جدید';
 
-  const sr=await fetch('/api/subs'),sd=await sr.json();
-  const sel=document.getElementById('nl-sub');
-  sel.innerHTML='<option value="">بدون اشتراک (مستقل)</option>'+(sd.subs||[]).map(s=>`<option value="${s.sub_id}">${esc(s.label)}</option>`).join('');
 
   let targetLink = null;
   if(uid){
@@ -1195,7 +1258,7 @@ async function openLinkModal(uid=''){
   }
 
   document.getElementById('nl-label').value = targetLink ? targetLink.label : '';
-  document.getElementById('nl-sub').value = targetLink ? (targetLink.sub_id || '') : '';
+
   document.getElementById('nl-val').value = targetLink ? (targetLink.limit_bytes / (1024**3)).toFixed(1) : 0;
   document.getElementById('nl-exp').value = 0;
   document.getElementById('nl-iplimit').value = targetLink ? targetLink.ip_limit : 0;
@@ -1228,7 +1291,7 @@ document.getElementById('form-link').addEventListener('submit',async e=>{
   const payload={
     label: document.getElementById('nl-label').value.trim(),
     protocol: document.getElementById('nl-proto').value||'vless-ws',
-    sub_id: document.getElementById('nl-sub').value||null,
+    clean_ip: document.getElementById('nl-clean-ip').value.trim()||"",
     limit_value: parseFloat(document.getElementById('nl-val').value)||0,
     limit_unit: document.getElementById('nl-unit').value,
     expires_days: parseInt(document.getElementById('nl-exp').value)||0,
@@ -1468,6 +1531,15 @@ function renderContent(d){{
       ${{d.desc ? `<div class="sub-desc">${{esc(d.desc)}}</div>` : ''}}
       <div style="font-size:10.5px;color:var(--t3);margin-bottom:14px"><i class="ti ti-clock"></i> بروزرسانی: ${{new Date().toLocaleTimeString('fa-IR')}}</div>
       
+      ${{d.username ? `
+      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); padding:10px 14px; border-radius:12px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+              <div style="font-size:10px; color:var(--t3); margin-bottom:2px;">نام کاربری SOCKS5 (برای تنظیم دستی)</div>
+              <div style="font-size:14px; font-weight:800; color:var(--t1); font-family:monospace; letter-spacing:1px;">${{esc(d.username)}}</div>
+          </div>
+          <button class="btn btn-g" style="padding:4px 10px;font-size:10px" onclick="navigator.clipboard.writeText('${{esc(d.username)}}').then(()=>toast('نام کاربری کپی شد ✓', 'ok'))"><i class="ti ti-copy"></i> کپی</button>
+      </div>
+      ` : ''}}
       <div class="sub-sub-box">
         <span class="sub-sub-url">${{esc(baseSubUrl)}}</span>
         <button class="btn btn-p" style="padding:6px 12px;font-size:10.5px"
@@ -1507,13 +1579,13 @@ function renderContent(d){{
       </div>
     </div>
 
-    <div style="font-size:12px;font-weight:800;color:var(--t2);margin-bottom:13px;display:flex;align-items:center;gap:6px"><i class="ti ti-link" style="color:var(--accent)"></i> کانفیگ‌های VLESS</div>
+    <div style="font-size:12px;font-weight:800;color:var(--t2);margin-bottom:13px;display:flex;align-items:center;gap:6px"><i class="ti ti-link" style="color:var(--accent)"></i> کانفیگ‌های فعال (VLESS / SOCKS)</div>
     <div>
       ${{d.links.map((l, i) => {{
-        const effectiveLimit = l.limit_bytes || d.limit_bytes || 0;
-        const pct = effectiveLimit === 0 ? 0 : Math.min(100, (l.used_bytes / effectiveLimit) * 100);
+        const hasLimit = l.limit_bytes > 0;
+        const pct = hasLimit ? Math.min(100, (l.used_bytes / l.limit_bytes) * 100) : 0;
         const bc  = pct > 90 ? 'var(--red)' : pct > 70 ? 'var(--amber)' : 'var(--green)';
-        const lim = l.limit_bytes === 0 ? (d.limit_bytes > 0 ? fmtB(d.limit_bytes) + ' (از ساب)' : '∞') : fmtB(l.limit_bytes);
+        const lim = hasLimit ? fmtB(l.limit_bytes) : 'نامحدود (سقف اشتراک)';
         return `
           <div class="cfg-card">
             <div class="cfg-top">

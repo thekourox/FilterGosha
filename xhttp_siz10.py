@@ -18,7 +18,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import StreamingResponse
-from relay_vless import parse_vless_header, check_and_use
+from relay_vless import parse_vless_header
 from speed_limit import throttle
 
 router = APIRouter()
@@ -117,6 +117,7 @@ class _QuotaGate:
                 target = int(self.rate_ewma * QUOTA_CHECK_INTERVAL)
                 self.batch_bytes = max(QUOTA_MIN_BATCH, min(QUOTA_MAX_BATCH, target or QUOTA_MIN_BATCH))
             self.last_check = now
+            from main import check_and_use
             self.ok = await check_and_use(self.uuid, flush)
             return self.ok
         return True
@@ -124,6 +125,7 @@ class _QuotaGate:
     async def flush(self) -> bool:
         if self.pending:
             flush, self.pending = self.pending, 0
+            from main import check_and_use
             self.ok = self.ok and await check_and_use(self.uuid, flush)
         return self.ok
 
@@ -178,25 +180,21 @@ async def _open_tcp_from_header(first_chunk: bytes):
 
 
 async def _check_link(uuid: str):
-    from main import LINKS, LINKS_LOCK, is_link_allowed
-    async with LINKS_LOCK:
-        link = LINKS.get(uuid)
-    if not is_link_allowed(link):
+    from main import check_and_use
+    if not await check_and_use(uuid, 0):
         raise HTTPException(status_code=403, detail="not authorized")
 
 
 async def _get_or_create_session(uuid: str, mode: str, session_id: str, ip: str = "نامشخص") -> dict:
     """Session بر اساس session_id که خودِ کلاینت در URL فرستاده، lazily ساخته می‌شه."""
-    from main import LINKS, LINKS_LOCK, is_ip_allowed, logger, connections
+    from main import is_ip_allowed, logger, connections
     async with XHTTP_LOCK:
         sess = xhttp_sessions.get(session_id)
         if sess is not None:
             sess["last_seen"] = time.time()
             return sess
 
-        async with LINKS_LOCK:
-            link = LINKS.get(uuid)
-        if not is_ip_allowed(link, uuid, ip):
+        if not is_ip_allowed(uuid, ip):
             logger.warning(f"🚫 XHTTP[{mode}] rejected uuid={uuid[:8]} ip={ip} (ip limit reached)")
             raise HTTPException(status_code=403, detail="ip limit reached")
 
@@ -370,6 +368,7 @@ async def packet_up_upload(uuid: str, session_id: str, seq: int, request: Reques
     if not body:
         return {"ok": True}
 
+    from main import check_and_use
     if not await check_and_use(uuid, len(body)):
         await _teardown(session_id)
         raise HTTPException(status_code=403, detail="quota/disabled/unknown")

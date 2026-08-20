@@ -71,7 +71,7 @@ def wrap_grpc_frame(payload: bytes) -> bytes:
 
 async def grpc_tunnel(request: Request):
     from main import (
-        LINKS_LOCK, LINKS, check_and_use, is_link_allowed, is_ip_allowed,
+        LINKS_LOCK, check_and_use, is_ip_allowed, get_speed_limit,
         stats, error_logs, connections, logger, save_state, log_activity
     )
 
@@ -101,16 +101,13 @@ async def grpc_tunnel(request: Request):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid UUID")
 
-    async with LINKS_LOCK:
-        link = LINKS.get(uid)
-
-    if not is_link_allowed(link):
+    if not await check_and_use(uid, 0):
         logger.warning(f"🚫 gRPC rejected uuid={uid[:8]}… (not allowed)")
         raise HTTPException(status_code=403, detail="not authorized")
 
-    if not is_ip_allowed(link, uid, ip):
+    if not is_ip_allowed(uid, ip):
         logger.warning(f"🚫 gRPC rejected uuid={uid[:8]}… ip={ip} (ip limit reached)")
-        log_activity("connection", f"اتصال {ip} به کانفیگ «{link.get('label','?')}» رد شد (محدودیت تعداد آی‌پی)", "warn")
+        log_activity("connection", f"اتصال gRPC {ip} با شناسه {uid[:8]} رد شد (محدودیت تعداد آی‌پی)", "warn")
         raise HTTPException(status_code=403, detail="ip limit reached")
 
     if not await check_and_use(uid, len(first_chunk)):
@@ -125,7 +122,7 @@ async def grpc_tunnel(request: Request):
         "bytes": len(first_chunk),
     }
     logger.info(f"✅ gRPC [{conn_id}] uuid={uid[:8]}… ip={ip} total={len(connections)}")
-    log_activity("connection", f"اتصال جدید gRPC از {ip} (کانفیگ {link.get('label','?')})", "info")
+    log_activity("connection", f"اتصال جدید gRPC از {ip} با شناسه {uid[:8]}", "info")
 
     stats["total_requests"] += 1
     logger.info(f"➡️  [{conn_id}] → {address}:{port}")

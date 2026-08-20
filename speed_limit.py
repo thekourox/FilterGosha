@@ -54,18 +54,8 @@ async def throttle(uuid: str, nbytes: int):
     """اگه کانفیگ یا اشتراک والد آن محدودیت سرعت داشته باشه، تا زمان آماده‌سازی بایت‌ها مکث می‌کند."""
     if nbytes <= 0:
         return
-    from main import LINKS, SUBS
-    link = LINKS.get(uuid)
-    if not link:
-        return
-    rate = int(link.get("speed_limit_bytes", 0) or 0)
-    sub_id = link.get("sub_id")
-    if sub_id:
-        sub = SUBS.get(sub_id)
-        if sub:
-            sub_rate = int(sub.get("speed_limit_bytes", 0) or 0)
-            if sub_rate > 0:
-                rate = sub_rate if rate <= 0 else min(rate, sub_rate)
+    from main import get_speed_limit
+    rate = get_speed_limit(uuid)
     if rate <= 0:
         return
     bucket = _get_bucket(uuid, rate)

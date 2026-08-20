@@ -40,28 +40,8 @@ async def parse_vless_header(chunk: bytes):
         raise ValueError(f"unknown addr type: {addr_type}")
     return command, address, port, chunk[pos:]
 
-async def check_and_use(uid: str, n: int) -> bool:
-    from main import LINKS, LINKS_LOCK, SUBS, stats, hourly_traffic, is_link_allowed, now_ir
-    async with LINKS_LOCK:
-        link = LINKS.get(uid)
-        if link is None:
-            return False
-        if not is_link_allowed(link):
-            return False
-        link["used_bytes"] += n
-
-        sub_id = link.get("sub_id")
-        if sub_id:
-            sub = SUBS.get(sub_id)
-            if sub:
-                sub["used_bytes"] += n
-
-        stats["total_bytes"] += n
-        hourly_traffic[now_ir().strftime("%H:00")] += n
-    return True
-
 async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: str, uid: str):
-    from main import stats, connections
+    from main import stats, connections, check_and_use
     try:
         while True:
             msg = await ws.receive()
@@ -88,7 +68,7 @@ async def relay_ws_to_tcp(ws: WebSocket, writer: asyncio.StreamWriter, conn_id: 
             pass
 
 async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: str, uid: str):
-    from main import connections
+    from main import connections, check_and_use
     first = True
     try:
         while True:
@@ -107,22 +87,19 @@ async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: 
         pass
 
 async def websocket_tunnel(ws: WebSocket, uuid: str):
-    from main import LINKS, LINKS_LOCK, is_link_allowed, is_ip_allowed, logger, log_activity, connections, stats, error_logs, save_state
+    from main import is_ip_allowed, logger, log_activity, connections, stats, error_logs, save_state
     await ws.accept()
 
-    async with LINKS_LOCK:
-        link = LINKS.get(uuid)
-
-    if not is_link_allowed(link):
+    if not await check_and_use(uuid, 0):
         logger.warning(f"🚫 WS rejected uuid={uuid[:8]}… (not allowed)")
         await ws.close(code=1008, reason="not authorized")
         return
 
     ip = _ws_client_ip(ws)
 
-    if not is_ip_allowed(link, uuid, ip):
+    if not is_ip_allowed(uuid, ip):
         logger.warning(f"🚫 WS rejected uuid={uuid[:8]}… ip={ip} (ip limit reached)")
-        log_activity("connection", f"اتصال {ip} به کانفیگ «{link.get('label','?')}» رد شد (محدودیت تعداد آی‌پی)", "warn")
+        log_activity("connection", f"اتصال {ip} با شناسه {uuid[:8]} رد شد (محدودیت تعداد آی‌پی)", "warn")
         await ws.close(code=1008, reason="ip limit reached")
         return
 
@@ -135,7 +112,7 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
         "bytes": 0,
     }
     logger.info(f"✅ WS [{conn_id}] uuid={uuid[:8]}… ip={ip} total={len(connections)}")
-    log_activity("connection", f"اتصال جدید از {ip} (کانفیگ {link.get('label','?')})", "info")
+    log_activity("connection", f"اتصال جدید از {ip} با شناسه {uuid[:8]}", "info")
     writer = None
 
     try:
