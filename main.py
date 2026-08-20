@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     socks_tcp_task = asyncio.create_task(start_socks5_tcp_server())
     
     log_activity("system", "سرور راه‌اندازی شد", "ok")
-    logger.info(f"FilterGosha Panel v9.8 started on port {CONFIG['port']}")
+    logger.info(f"FilterGosha Panel v1.3.3 started on port {CONFIG['port']}")
     yield
     
     socks_tcp_task.cancel()
@@ -759,7 +759,7 @@ def client_ip(request: Request) -> str:
 # ── Basic endpoints ───────────────────────────────────────────────────────────
 @app.get("/")
 async def root():
-    return {"service": "FilterGosha", "version": "9.8", "status": "active", "channel": "https://t.me/FilterGosha"}
+    return {"service": "FilterGosha", "version": "1.3.3", "status": "active", "channel": "https://t.me/FilterGosha"}
 
 @app.get("/health")
 async def health():
