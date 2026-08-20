@@ -87,7 +87,7 @@ async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: 
         pass
 
 async def websocket_tunnel(ws: WebSocket, uuid: str):
-    from main import is_ip_allowed, logger, log_activity, connections, stats, error_logs, save_state
+    from main import is_ip_allowed, logger, log_activity, connections, stats, error_logs, save_state, check_and_use
     await ws.accept()
 
     if not await check_and_use(uuid, 0):

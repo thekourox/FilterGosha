@@ -1,6 +1,7 @@
 import asyncio
 import struct
 import secrets
+import uuid
 from datetime import datetime
 from fastapi import Request, HTTPException
 from fastapi.responses import StreamingResponse

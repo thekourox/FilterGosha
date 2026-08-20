@@ -56,7 +56,7 @@ async def relay_tcp_to_ws(ws: WebSocket, reader: asyncio.StreamReader, conn_id: 
         pass
 
 async def handle_socks5_ws(ws: WebSocket, uid: str):
-    from main import is_ip_allowed, connections, stats, error_logs, logger, log_activity
+    from main import is_ip_allowed, connections, stats, error_logs, logger, log_activity, check_and_use
     await ws.accept()
 
     if not await check_and_use(uid, 0):
