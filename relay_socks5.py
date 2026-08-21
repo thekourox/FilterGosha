@@ -72,6 +72,7 @@ async def handle_socks5_ws(ws: WebSocket, uid: str):
         "last_connected_at": datetime.now().isoformat(),
         "bytes": 0,
         "type": "SOCKS5-WS",
+        "transport": "socks5-ws",
     }
 
     try:
@@ -281,6 +282,7 @@ async def handle_socks5_tcp(client_reader: asyncio.StreamReader, client_writer: 
             "last_connected_at": datetime.now().isoformat(),
             "bytes": 0,
             "type": "SOCKS5-TCP",
+            "transport": "socks5-tcp",
         }
         
         try:

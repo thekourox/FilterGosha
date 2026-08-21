@@ -1064,17 +1064,66 @@ async def get_activity(_=Depends(require_auth)):
 @app.get("/api/connections")
 async def get_connections(_=Depends(require_auth)):
     async with LINKS_LOCK:
-        snap = dict(LINKS)
+        snap_links = dict(LINKS)
+    async with SUBS_LOCK:
+        snap_subs = dict(SUBS)
 
     by_uuid: dict[str, dict] = {}
     for conn_id, c in connections.items():
         uid = c.get("uuid", "نامشخص")
         ip = c.get("ip", "نامشخص")
-        link = snap.get(uid)
-        label = link.get("label") if link else "کانفیگ حذف‌شده"
-        proto = link.get("protocol", DEFAULT_PROTOCOL) if link else "?"
+        transport = c.get("transport") or c.get("type", "vless")
 
-        cfg = by_uuid.get(uid)
+        if uid in snap_links:
+            link = snap_links[uid]
+            label = link.get("label", "کانفیگ")
+            proto = link.get("protocol", transport)
+            group_key = f"link_{uid}"
+        elif uid in snap_subs:
+            sub = snap_subs[uid]
+            sub_label = sub.get("label", "اشتراک")
+            matched_link_label = None
+            matched_link_proto = None
+            for l_id in sub.get("links", []):
+                l = snap_links.get(l_id)
+                if not l:
+                    continue
+                lp = l.get("protocol", "")
+                if lp == transport:
+                    matched_link_label = l.get("label")
+                    matched_link_proto = lp
+                    break
+                elif "ws" in transport and "ws" in lp:
+                    matched_link_label = l.get("label")
+                    matched_link_proto = lp
+                    break
+                elif "grpc" in transport and "grpc" in lp:
+                    matched_link_label = l.get("label")
+                    matched_link_proto = lp
+                    break
+                elif "xhttp" in transport and "xhttp" in lp:
+                    matched_link_label = l.get("label")
+                    matched_link_proto = lp
+                    break
+                elif "socks" in transport.lower() and lp in ("socks5", "socks", "custom"):
+                    matched_link_label = l.get("label")
+                    matched_link_proto = lp
+                    break
+
+            if matched_link_label:
+                label = f"{sub_label} ({matched_link_label})"
+                proto = matched_link_proto or transport
+                group_key = f"sub_{uid}_{matched_link_label}"
+            else:
+                label = f"اشتراک: {sub_label}"
+                proto = transport
+                group_key = f"sub_{uid}_{transport}"
+        else:
+            label = "کانفیگ حذف‌شده"
+            proto = transport
+            group_key = f"del_{uid}"
+
+        cfg = by_uuid.get(group_key)
         if cfg is None:
             cfg = {
                 "uuid": uid,
@@ -1086,7 +1135,7 @@ async def get_connections(_=Depends(require_auth)):
                 "first_connected_at": c.get("connected_at"),
                 "last_connected_at": c.get("connected_at"),
             }
-            by_uuid[uid] = cfg
+            by_uuid[group_key] = cfg
         cfg["sessions"] += 1
         cfg["bytes"] += c.get("bytes", 0)
 
@@ -1100,7 +1149,7 @@ async def get_connections(_=Depends(require_auth)):
             cfg["ips"][ip] = ip_entry
         ip_entry["sessions"] += 1
         ip_entry["bytes"] += c.get("bytes", 0)
-        ip_entry["transports"].add(c.get("transport", "vless-grpc"))
+        ip_entry["transports"].add(transport)
 
         ca = c.get("connected_at")
         for entry in (cfg, ip_entry):
@@ -1111,7 +1160,7 @@ async def get_connections(_=Depends(require_auth)):
                     entry["last_connected_at"] = ca
 
     configs = []
-    for uid, cfg in by_uuid.items():
+    for gkey, cfg in by_uuid.items():
         ip_list = []
         for ip, e in cfg["ips"].items():
             ip_list.append({
@@ -1125,7 +1174,7 @@ async def get_connections(_=Depends(require_auth)):
             })
         ip_list.sort(key=lambda x: x.get("last_connected_at") or "", reverse=True)
         configs.append({
-            "uuid": uid,
+            "uuid": cfg["uuid"],
             "label": cfg["label"],
             "protocol": cfg["protocol"],
             "ip_count": len(ip_list),
@@ -1587,14 +1636,22 @@ async def public_sub_data(uuid_key: str, request: Request):
         
         for uid, l in sub_links.items():
             allowed = is_link_allowed(l)
-            c_count = sum(1 for c in connections.values() if c.get("uuid") == uid)
-            active_conns += c_count
-            proto = l.get("protocol", DEFAULT_PROTOCOL)
+            lp = l.get("protocol", DEFAULT_PROTOCOL)
+            c_count = 0
+            for c in connections.values():
+                c_uid = c.get("uuid")
+                c_trans = c.get("transport") or c.get("type", "")
+                if c_uid == uid:
+                    c_count += 1
+                elif c_uid == uuid_key:
+                    if c_trans == lp or ("ws" in c_trans and "ws" in lp) or ("grpc" in c_trans and "grpc" in lp) or ("xhttp" in c_trans and "xhttp" in lp) or ("socks" in c_trans.lower() and lp in ("socks5", "socks", "custom")):
+                        c_count += 1
+
             links_out.append({
                 "uuid": uid,
                 "label": l["label"],
                 "active": allowed,
-                "protocol": proto,
+                "protocol": lp,
                 "used_bytes": l.get("used_bytes", 0),
                 "used_fmt": fmt_bytes(l.get("used_bytes", 0)),
                 "limit_bytes": l.get("limit_bytes", 0),
@@ -1606,7 +1663,9 @@ async def public_sub_data(uuid_key: str, request: Request):
                 "ip_limit": l.get("ip_limit", 0),
                 "speed_limit_bytes": l.get("speed_limit_bytes", 0),
             })
-            
+
+        active_conns = sum(1 for c in connections.values() if c.get("uuid") == uuid_key or c.get("uuid") in sub_links)
+
         return {
             "locked": False,
             "name": sub["label"],
